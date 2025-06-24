@@ -8,6 +8,18 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
+function HomeTabBarIcon({ color }: { readonly color: string }) {
+  return <IconSymbol size={28} name="house.fill" color={color} />;
+}
+
+function ParksTabBarIcon({ color }: { readonly color: string }) {
+  return <IconSymbol size={28} name="soccerball" color={color} />;
+}
+
+function AboutTabBarIcon({ color }: { readonly color: string }) {
+  return <IconSymbol size={28} name="info.circle" color={color} />;
+}
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
@@ -30,14 +42,21 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: HomeTabBarIcon,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="parks/index"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Parks',
+          tabBarIcon: ParksTabBarIcon,
+        }}
+      />
+      <Tabs.Screen
+        name="about/index"
+        options={{
+          title: 'About',
+          tabBarIcon: AboutTabBarIcon,
         }}
       />
     </Tabs>
