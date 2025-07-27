@@ -1,0 +1,16 @@
+today:
+fix the loading thing it does when a page is loaded, 
+make location, game prettier
+
+
+this week:
+chat room if its hard, if easy chat and friends and beautify           
+
+this month:
+chat room for each game or be able to make group chats
+
+
+ideas for whenever:
+
+implement friends, make disclaimer with place accuracy and park availability, implement notifications,
+add sport filter for index

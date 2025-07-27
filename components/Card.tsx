@@ -32,6 +32,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginVertical: 8,
     marginHorizontal: 4,
+    marginRight: 20,
     borderWidth: 1,
     // optional: shadow (looks better in light mode)
     shadowColor: '#000',
