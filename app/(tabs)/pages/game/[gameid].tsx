@@ -8,6 +8,7 @@ import { jwtDecode } from 'jwt-decode';
 
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import Header from '@/components/Header';
+import GameChat from '@/components/GameChat';
 
 import { getGameId, addGameMember, deleteGame, removeGameMember } from '@/utils/api';
 import { User } from '@/utils/types';
@@ -18,8 +19,8 @@ export default function GameScreen() {
 
   const { gameid } = useLocalSearchParams();
 
-  const [userid, setUserid] = useState<string | null>(null);
-  const [members, setMembers] = useState<[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [members, setMembers] = useState<User[]>([]);
   const [gameName, setGameName] = useState<string>('');
   const [leader, setLeader] = useState<User| null>(null);
   const [date, setDate] = useState<Date>(new Date());
@@ -36,7 +37,7 @@ export default function GameScreen() {
           const token = await SecureStore.getItemAsync('token');
           if (token) {
             const decoded: any = jwtDecode(token);
-            setUserid(decoded._id);
+            setUser(decoded);
           }
         } catch (error) {
           console.log('Failed to load user:', error);
@@ -75,9 +76,9 @@ export default function GameScreen() {
 
   // Extract button text logic into a variable
   let buttonText = 'Join Game';
-  if (leader && userid === leader._id) {
+  if (leader && user && user._id === leader._id) {
     buttonText = 'Delete Game';
-  } else if (members.some((member: any) => member._id === userid)) {
+  } else if (user && members.some((member: any) => member._id === user._id)) {
     buttonText = 'Leave Game';
   }
 
@@ -116,44 +117,52 @@ export default function GameScreen() {
             <Text style={{ color: textColor }}>No members found.</Text>
           )}
         </View>
-      </ParallaxScrollView>
-      <TouchableOpacity
-        style={{
-          position: 'absolute',
-          bottom: 100,
-          right: 24,
-          backgroundColor: '#007AFF',
-          borderRadius: 32,
-          paddingVertical: 16,
-          paddingHorizontal: 24,
-          elevation: 4,
-          zIndex: 100,
-        }}
-        onPress={async () => {
-          const gameId = Array.isArray(gameid) ? gameid[0] : gameid;
-          if (!userid) {
-            console.log('User is not loaded');
-            return;
-          }
-          if (leader && userid === leader._id) {
-            await deleteGame(gameId);
-            router.back()
-            return;
-          }
-          const isMember = members.some((member: any) => member._id === userid);
-          if (isMember) {
-            await removeGameMember(gameId, userid);
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            right: 24,
+            backgroundColor: '#007AFF',
+            borderRadius: 32,
+            paddingVertical: 16,
+            paddingHorizontal: 24,
+            elevation: 4,
+            zIndex: 100,
+          }}
+          onPress={async () => {
+            const gameId = Array.isArray(gameid) ? gameid[0] : gameid;
+            if (!user?._id) {
+              console.log('User is not loaded');
+              return;
+            }
+            if (leader && user._id === leader._id) {
+              await deleteGame(gameId);
+              router.back()
+              return;
+            }
+            const isMember = members.some((member: any) => member._id === user._id);
+            if (isMember) {
+              await removeGameMember(gameId, user._id);
+              setRefreshFlag((prev) => prev === 1 ? 0 : 1);
+              return;
+            }
+            await addGameMember(gameId, user._id);
             setRefreshFlag((prev) => prev === 1 ? 0 : 1);
-            return;
-          }
-          await addGameMember(gameId, userid);
-          setRefreshFlag((prev) => prev === 1 ? 0 : 1);
-        }}
-      >
-        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>
-          {buttonText}
-        </Text>
-      </TouchableOpacity>
+          }}
+        >
+          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>
+            {buttonText}
+          </Text>
+        </TouchableOpacity>
+      </ParallaxScrollView>
+      {}
+      {user && members.some((member: any) => member._id === user._id) && (
+        <GameChat
+          gameId={Array.isArray(gameid) ? gameid[0] : gameid}
+          userId={user._id}
+          username={members.find((member: any) => member._id === user._id)!.username}
+        />
+      )}
     </View>
   );
 }

@@ -3,8 +3,6 @@ import { Alert } from 'react-native';
 
 export const API_BASE_URL = '10.0.0.58';
 
-const BASE_URL = 'http://localhost:3001';
-
 
 // Auth Calls
 export const register = async (username: string, password: string) => {
@@ -86,13 +84,13 @@ export const createGame = async (name: string, date: Date, location: string, fsq
 }
 
 export const deleteGame = async (gameid: string) => {
-  try{
+  try{    
     const res = await fetch(`http://${API_BASE_URL}:3000/game/${gameid}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
     });
-
     const data = await res.json();
+    
     if (!res.ok) throw new Error(data.error);
     return data;
   } catch(err) {
@@ -212,22 +210,6 @@ export const updateProfile = async (description: string, picture: string | numbe
 }
 
 // Game Message Calls
-export const sendGameMessage = async (gameId: string, userId: string, message: string, messageType: 'text' | 'system' = 'text') => {
-  try {
-    const res = await fetch(`http://${API_BASE_URL}:3000/message`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gameId, userId, message, messageType }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    return data;
-  } catch (err) {
-    Alert.alert('Send Message Failed', err instanceof Error ? err.message : 'An unknown error occurred');
-  }
-};
-
 export const getMessagesForGame = async (gameId: string) => {
   try {
     const res = await fetch(`http://${API_BASE_URL}:3000/message/${gameId}`, {
