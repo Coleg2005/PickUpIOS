@@ -1,4 +1,4 @@
-// components/GameChat.tsx
+// imports 
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -6,9 +6,9 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Keyboard
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
@@ -17,6 +17,11 @@ import SocketService from '@/utils/socket';
 
 import { getMessagesForGame } from '@/utils/api';
 
+import { useThemeColor } from '@/hooks/useThemeColor';
+import { useTheme } from '@react-navigation/native';
+
+
+// types
 interface Message {
   _id: string;
   gameId: string;
@@ -33,20 +38,41 @@ interface GameChatProps {
   username: string;
 }
 
-
+// component
 const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
 
+  const tintTextColor = useThemeColor({}, 'tint');
+  const backgroundColor = useThemeColor({}, 'background');
+  const cardBackgroundColor = useThemeColor({}, 'cardBackground');
+  const cardBorderColor = useThemeColor({}, 'cardBorder');
+  const cardTextColor = useThemeColor({}, 'cardText');
+  const textColor = useThemeColor({}, 'text');
+
+
+  // all obvious
   const insets = useSafeAreaInsets();
   const bottomSpace = useBottomTabBarHeight();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isConnected, setIsConnected] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    // Connect to socket and join game room
+    const show = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hide = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(show, () => setKeyboardOpen(true));
+    const hideSub = Keyboard.addListener(hide, () => setKeyboardOpen(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // socket
+  useEffect(() => {
     const socket = SocketService.connect(gameId, userId);
 
     socket.on('connect', () => {
@@ -99,11 +125,17 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
     };
   }, [gameId, userId]);
 
+  // Scroll to bottom when chat becomes visible and messages are loaded
+  useEffect(() => {
+    if (isVisible && messages.length > 0) {
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [isVisible]);
+
   const loadMessages = async () => {
     try {
       const data = await getMessagesForGame(gameId);
-      // If data is an array, use it directly; otherwise, try data.messages
-      let msgs = Array.isArray(data) ? data : data.messages || [];
+      let msgs = data;
       // Ensure timestamps are Date objects
       msgs = msgs.map((msg: any) => ({
         ...msg,
@@ -118,7 +150,6 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
 
   const sendMessage = () => {
     if (inputText.trim() && isConnected) {
-      // Optimistically add the message to the UI
       const newMsg: Message = {
         _id: `local-${Date.now()}`,
         gameId,
@@ -145,20 +176,50 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
 
     if (isSystemMessage) {
       return (
-        <View style={styles.systemMessage}>
-          <Text style={styles.systemMessageText}>{item.message}</Text>
+        <View style={{
+          alignSelf: 'center',
+          marginVertical: 8,
+          padding: 8,
+          backgroundColor: backgroundColor,
+          borderRadius: 16,
+        }}>
+          <Text style={{
+            fontSize: 12,
+            color: tintTextColor,
+            fontStyle: 'italic',
+          }}>{item.message}</Text>
         </View>
       );
     }
 
+    // else is amessage sent by a person
     return (
-      <View style={[
-        styles.messageContainer,
-        isOwnMessage ? styles.ownMessage : styles.otherMessage
-      ]}>
-        <Text style={styles.username}>{item.username}</Text>
-        <Text style={styles.messageText}>{item.message}</Text>
-        <Text style={styles.timestamp}>
+      <View style={{
+        marginVertical: 4,
+        padding: 12,
+        borderRadius: 8,
+        maxWidth: '90%',
+        backgroundColor: isOwnMessage ? '#007AFF' : cardBackgroundColor,
+        borderWidth: 1,
+        borderColor: isOwnMessage ? '#007AFF' : cardBorderColor,
+        alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
+      }}>
+        <Text style={{
+          fontSize: 12,
+          fontWeight: 'bold',
+          marginBottom: 4,
+          color: isOwnMessage ? '#fff' : cardTextColor,
+        }}>{item.username}</Text>
+        <Text style={{
+          fontSize: 16,
+          color: isOwnMessage ? '#fff' : cardTextColor,
+        }}>{item.message}</Text>
+        <Text style={{
+          fontSize: 10,
+          color: isOwnMessage ? '#fff' : cardTextColor,
+          marginTop: 4,
+          textAlign: 'right',
+        }}>
           {new Date(item.timestamp).toLocaleTimeString([], { 
             hour: '2-digit', 
             minute: '2-digit' 
@@ -169,7 +230,6 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
   };
 
   if (!isVisible) {
-    // Only show a floating chevron button when hidden
     return (
       <TouchableOpacity
         style={{
@@ -207,22 +267,38 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: '#fff' }]}
+      style={{ flex: 1, backgroundColor: backgroundColor }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={{ flex: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ccc' }}>
+      <View style={{ flex: 1, backgroundColor: backgroundColor, borderColor: cardBorderColor }}>
         <TouchableOpacity
-          style={[styles.header, { bottom: bottomSpace, backgroundColor: '#f5f5f5', borderBottomWidth: 1, borderBottomColor: '#ccc', paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+          style={{ 
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 16,
+            paddingTop: 16,
+            paddingBottom: 8,
+            bottom: bottomSpace, 
+            backgroundColor: backgroundColor, 
+            borderTopWidth: 1, 
+            borderBottomWidth: 1, 
+            borderTopColor: cardBorderColor,
+            borderBottomColor: cardBorderColor
+          }}
           onPress={() => setIsVisible(false)}
           activeOpacity={0.7}
         >
-          <Text style={[styles.headerText, { color: '#222' }]}>Game Chat</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: textColor }}>Game Chat</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={[
-              styles.connectionStatus,
-              { backgroundColor: isConnected ? '#4CAF50' : '#F44336', marginRight: 8 }
-            ]} />
-            <Text style={{ fontSize: 20, color: '#222' }}>▼</Text>
+            <View style={{
+              width: 12,
+              height: 12,
+              borderRadius: 6,
+              backgroundColor: isConnected ? '#4CAF50' : '#F44336',
+              marginRight: 8
+            }} />
+            <Text style={{ fontSize: 20, color: textColor }}>▼</Text>
           </View>
         </TouchableOpacity>
 
@@ -231,25 +307,38 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
           data={messages}
           keyExtractor={(item) => item._id}
           renderItem={renderMessage}
-          style={{ flex: 1, backgroundColor: '#fff', minHeight: 120, borderBottomWidth: 1, borderColor: '#ccc', bottom: bottomSpace }}
-          contentContainerStyle={{ padding: 8, flexGrow: 1, justifyContent: 'flex-end', paddingBottom: bottomSpace }}
+          style={{ flex: 1, backgroundColor: backgroundColor, minHeight: 120, borderBottomWidth: 1, borderColor: cardBorderColor, bottom: bottomSpace }}
+          contentContainerStyle={{ padding: 8, flexGrow: 1, justifyContent: 'flex-end' }}
           onContentSizeChange={scrollToBottom}
         />
 
-        <View style={[
-          styles.inputContainer,
-          {
-            backgroundColor: '#f5f5f5',
-            borderTopWidth: 1,
-            borderTopColor: '#ccc',
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: insets.bottom + 48,
-          },
-        ]}>
+        <View style={{
+          flexDirection: 'row',
+          padding: 12,
+          borderTopWidth: 1,
+          borderTopColor: cardBorderColor,
+          alignItems: 'flex-end',
+          minHeight: 48,
+          backgroundColor: cardBackgroundColor,
+          left: 0,
+          right: 0,
+          ...(keyboardOpen
+            ? { position: 'absolute', bottom: 0 }
+            : { bottom: bottomSpace })
+        }}>
           <TextInput
-            style={[styles.textInput, { backgroundColor: '#fff', color: '#222', borderColor: '#bbb' }]}
+            style={{
+              flex: 1,
+              borderWidth: 1,
+              borderColor: cardBorderColor,
+              borderRadius: 20,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              marginRight: 8,
+              maxHeight: 100,
+              backgroundColor: cardBackgroundColor,
+              color: cardTextColor,
+            }}
             value={inputText}
             onChangeText={setInputText}
             placeholder="Type a message..."
@@ -258,127 +347,22 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
             maxLength={500}
           />
           <TouchableOpacity
-            style={[
-              styles.sendButton,
-              { opacity: inputText.trim() && isConnected ? 1 : 0.5 }
-            ]}
+            style={{
+              backgroundColor: '#007AFF',
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              borderRadius: 20,
+              opacity: inputText.trim() && isConnected ? 1 : 0.5
+            }}
             onPress={sendMessage}
             disabled={!inputText.trim() || !isConnected}
           >
-            <Text style={styles.sendButtonText}>Send</Text>
+            <Text style={{ color: textColor, fontWeight: 'bold' }}>Send</Text>
           </TouchableOpacity>
         </View>
       </View>
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  headerText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  connectionStatus: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  messagesList: {
-    flex: 1,
-    padding: 0,
-  },
-  messageContainer: {
-    marginVertical: 4,
-    padding: 12,
-    borderRadius: 8,
-    maxWidth: '90%',
-    backgroundColor: '#e9e9e9',
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  ownMessage: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#007AFF',
-    color: '#fff',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  otherMessage: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#f0f0f0',
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  username: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#666',
-  },
-  messageText: {
-    fontSize: 16,
-    color: '#000',
-  },
-  timestamp: {
-    fontSize: 10,
-    color: '#666',
-    marginTop: 4,
-    textAlign: 'right',
-  },
-  systemMessage: {
-    alignSelf: 'center',
-    marginVertical: 8,
-    padding: 8,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 16,
-  },
-  systemMessageText: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    alignItems: 'flex-end',
-    minHeight: 48,
-  },
-  textInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#bbb',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 8,
-    maxHeight: 100,
-    backgroundColor: '#fff',
-    color: '#222',
-  },
-  sendButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-});
 
 export default GameChat;
