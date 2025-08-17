@@ -105,7 +105,16 @@ export default function GameScreen() {
           {members && members.length > 0 ? (
             <View style={{ gap: 12 }}>
               {members.map((member: any) => (
-                <TouchableOpacity key={member._id} onPress={() => router.push({ pathname: '/(tabs)/pages/user/[userid]', params: { userid: member._id } })}>
+                <TouchableOpacity
+                  key={member._id}
+                  onPress={() => {
+                    if (user && member._id === user._id) {
+                      router.push('/(tabs)/profile');
+                    } else {
+                      router.push({ pathname: '/(tabs)/pages/user/[userid]', params: { userid: member._id } });
+                    }
+                  }}
+                >
                   <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, elevation: 1 }}>
                     <Text style={{ fontSize: 16, fontWeight: '600', color: textColor }}>{member.username}</Text>
                     {/* You can add more member info here if needed */}
@@ -126,8 +135,6 @@ export default function GameScreen() {
             borderRadius: 32,
             paddingVertical: 16,
             paddingHorizontal: 24,
-            elevation: 4,
-            zIndex: 100,
           }}
           onPress={async () => {
             const gameId = Array.isArray(gameid) ? gameid[0] : gameid;

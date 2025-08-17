@@ -1,16 +1,24 @@
 today:
-fix the loading thing it does when a page is loaded, 
-make location, game prettier
+make inbox for notifications
 
+notification for:
+someone requests to add you as a friend,
+game starts soon,
+game chat messages,
 
 this week:
-chat room if its hard, if easy chat and friends and beautify           
+make notification bubble either on settings gear or inbox tab
+
 
 this month:
-chat room for each game or be able to make group chats
+implement notifications
 
 
 ideas for whenever:
 
-implement friends, make disclaimer with place accuracy and park availability, implement notifications,
+make disclaimer with place accuracy and park availability, implement notifications,
 add sport filter for index
+
+All Time:
+
+Deploy

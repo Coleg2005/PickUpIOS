@@ -170,6 +170,41 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
     flatListRef.current?.scrollToEnd({ animated: true });
   };
 
+  // Preprocess messages to inject date system messages
+  const getMessagesWithDateSeparators = (msgs: Message[]) => {
+    if (!msgs.length) return [];
+    const result: Message[] = [];
+    let lastDate: string | null = null;
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    const todayStr = today.toDateString();
+    const yesterdayStr = yesterday.toDateString();
+    msgs.forEach((msg) => {
+      const msgDate = new Date(msg.timestamp).toDateString();
+      let label = msgDate;
+      if (msgDate === todayStr) {
+        label = 'Today';
+      } else if (msgDate === yesterdayStr) {
+        label = 'Yesterday';
+      }
+      if (msgDate !== lastDate) {
+        result.push({
+          _id: `date-separator-${msgDate}`,
+          gameId: msg.gameId,
+          userId: 'system',
+          username: 'System',
+          message: label,
+          timestamp: msg.timestamp,
+          messageType: 'system',
+        });
+        lastDate = msgDate;
+      }
+      result.push(msg);
+    });
+    return result;
+  };
+
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = item.userId === userId;
     const isSystemMessage = item.messageType === 'system';
@@ -192,7 +227,7 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
       );
     }
 
-    // else is amessage sent by a person
+    // else is a message sent by a person
     return (
       <View style={{
         marginVertical: 4,
@@ -304,7 +339,7 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
 
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={getMessagesWithDateSeparators(messages)}
           keyExtractor={(item) => item._id}
           renderItem={renderMessage}
           style={{ flex: 1, backgroundColor: backgroundColor, minHeight: 120, borderBottomWidth: 1, borderColor: cardBorderColor, bottom: bottomSpace }}

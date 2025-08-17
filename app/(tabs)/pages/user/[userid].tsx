@@ -1,26 +1,60 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Button, Alert, TextInput, Image } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, Button, Alert, Image } from 'react-native';
 
 import Header from '@/components/Header';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
+
 import { useThemeColor } from '@/hooks/useThemeColor';
 
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 
-import { getUser } from '@/utils/api';
+import { getUser, addFriend, removeFriend } from '@/utils/api';
+import { getPfp } from '@/utils/api';
+import { useFocusEffect } from '@react-navigation/native';
+
+import { jwtDecode } from 'jwt-decode';
+import * as SecureStore from 'expo-secure-store';
 
 export default function Profile() {
 
   const { userid } = useLocalSearchParams();
 
+  const [visitedUser, setVisitedUser] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
+  const [isFriend, setIsFriend] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (user && visitedUser) {
+      const friendIds = user.friends?.map((f: any) => f._id || f) || [];
+      setIsFriend(friendIds.includes(visitedUser._id));
+    }
+  }, [user, visitedUser]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadVisitedUser = async () => {
+        try {
+          const res = await getUser(Array.isArray(userid) ? userid[0] : userid);
+          setVisitedUser(res.user);
+        } catch (error) {
+          console.log('Failed to load user:', error);
+        }
+      };
+      loadVisitedUser();
+    }, [userid])
+  );
 
   useEffect(() => {
     const loadUser = async () => {
       try {
-        
-        const res = await getUser(Array.isArray(userid) ? userid[0] : userid);
-        setUser(res.user);
+        const token = await SecureStore.getItemAsync('token');
+        if (token) {
+          const decoded: any = jwtDecode(token);
+          if (decoded?._id) {
+            const res = await getUser(decoded._id)
+            setUser(res.user);
+          }
+        }
       } catch (error) {
         console.log('Failed to load user:', error);
       }
@@ -28,10 +62,21 @@ export default function Profile() {
     loadUser();
   }, []);
 
-  const router = useRouter();
+  const handleAddFriend = async () => {
+    await addFriend(user._id, Array.isArray(userid) ? userid[0] : userid);
+    setIsFriend(true)
+    Alert.alert('Friend Added!');
+  };
 
-  const textColor = useThemeColor({}, 'text');
+  const handleRemoveFriend = async () => {
+    await removeFriend(user._id, Array.isArray(userid) ? userid[0] : userid);
+    setIsFriend(false)
+    Alert.alert('Friend Removed!');
+  };
+
   const cardBackgroundColor = useThemeColor({}, 'cardBackground');
+  const borderColor = useThemeColor({}, 'cardBorder');
+  const textColor = useThemeColor({}, 'text');
 
   return (
     <ParallaxScrollView
@@ -42,25 +87,52 @@ export default function Profile() {
         {/* Profile Picture */}
         <View style={{ marginBottom: 16 }}>
           <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#eee', overflow: 'hidden', marginBottom: 8, borderWidth: 2, borderColor: cardBackgroundColor }}>
-            {user?.profile?.picture ? (
+            {visitedUser?.profile?.picture ? (
               <Image
-                source={{ uri: user.profile.picture }}
+                source={{ uri: getPfp(visitedUser._id) }}
                 style={{ width: 100, height: 100, borderRadius: 50 }}
                 resizeMode="cover"
               />
             ) : (
               <Text style={{ textAlign: 'center', lineHeight: 100, color: '#aaa', fontSize: 40 }}>
-                {user?.username?.[0]?.toUpperCase() || '?'}
+                {visitedUser?.username?.[0]?.toUpperCase() || '?'}
               </Text>
             )}
           </View>
         </View>
         {/* Username */}
-        <Text style={{ color: textColor, fontSize: 24, fontWeight: 'bold', marginBottom: 4 }}>{user?.username || 'Username'}</Text>
+        <Text style={{ color: textColor, fontSize: 24, fontWeight: 'bold', marginBottom: 4 }}>{visitedUser?.username || 'Username'}</Text>
+        
+        {/* Add Friend Button */}
+        <View style={{ 
+            alignItems: 'center', 
+            marginBottom: 16, 
+            backgroundColor: cardBackgroundColor, 
+            borderWidth: 1, 
+            borderColor: borderColor,
+            borderRadius: 10
+          }}>
+          <View style={{ width: '60%' }}>
+            {isFriend ? (
+              <Button
+                title="Remove Friend"
+                color={textColor}
+                onPress={() => {handleRemoveFriend()}}
+              />
+            ) : (            
+              <Button
+                title="Add Friend"
+                color={textColor}
+                onPress={() => {handleAddFriend()}}
+              />
+            )}
+          </View>
+        </View>
+
         {/* Description */}
         <View style={{ width: '100%', marginBottom: 16 }}>
           <Text style={{ color: textColor, fontSize: 18, marginBottom: 4 }}>Description:</Text>
-          <Text style={{ color: textColor, fontSize: 16, minHeight: 60, marginBottom: 8 }}>{user?.profile?.description || 'No description set.'}</Text>
+          <Text style={{ color: textColor, fontSize: 16, minHeight: 60, marginBottom: 8 }}>{visitedUser?.profile?.description || 'No description set.'}</Text>
         </View>
       </View>
     </ParallaxScrollView>

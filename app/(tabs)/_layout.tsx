@@ -32,7 +32,7 @@ function ParksTabBarIcon({ color }: { readonly color: string }) {
 }
 
 function AboutTabBarIcon({ color }: { readonly color: string }) {
-  return <IconSymbol size={28} name="info.circle" color={color} />;
+  return <IconSymbol size={28} name="person" color={color} />;
 }
 
 export default function TabLayout() {

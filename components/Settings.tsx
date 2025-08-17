@@ -176,12 +176,6 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                 title="Notifications"
                 onPress={() => console.log('Notifications')}
               />
-              <SettingsItem
-                icon="shield-checkmark-outline"
-                title="Privacy & Security"
-                onPress={() => console.log('Privacy')}
-                showBorder={false}
-              />
             </View>
           </View>
 
@@ -193,12 +187,6 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                 icon="color-palette-outline"
                 title="Appearance"
                 onPress={() => console.log('Appearance')}
-              />
-              <SettingsItem
-                icon="help-circle-outline"
-                title="Help & Support"
-                onPress={() => console.log('Help')}
-                showBorder={false}
               />
             </View>
           </View>
@@ -212,7 +200,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                 onPress={handleLogout}
                 color="#d9534f"
                 iconColor="#d9534f"
-                showBorder={false}
+                showBorder={true}
               />
             </View>
           </View>

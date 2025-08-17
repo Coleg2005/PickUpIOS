@@ -193,12 +193,12 @@ export const getGameId = async (id: string) => {
 }
 
 // Profile Calls
-export const updateProfile = async (description: string, picture: string | number, userid: string) => {
+export const updateProfile = async (description: string | null, userid: string) => {
   try{
     const res = await fetch(`http://${API_BASE_URL}:3000/profile/updateProfile`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description, picture, userid }),
+      body: JSON.stringify({ description, userid }),
     });
 
     const data = await res.json();
@@ -223,6 +223,88 @@ export const getMessagesForGame = async (gameId: string) => {
   } catch (err) {
     Alert.alert('Get Messages Failed', err instanceof Error ? err.message : 'An unknown error occurred');
     return [];
+  }
+};
+
+// Friend Calls
+export const addFriend = async (userid: string, friendid: string) => {
+  try {
+    const res = await fetch(`http://${API_BASE_URL}:3000/friend/add`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userid, friendid }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (err) {
+    Alert.alert('Add Friend Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+  }
+}
+
+export const removeFriend = async (userid: string, friendid: string) => {
+  try {
+    const res = await fetch(`http://${API_BASE_URL}:3000/friend/remove`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userid, friendid }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (err) {
+    Alert.alert('Remove Friend Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+  }
+}
+
+export const getFriends = async (userid: string) => {
+  try {
+    const res = await fetch(`http://${API_BASE_URL}:3000/friend/${userid}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (err) {
+    Alert.alert('Get Messages Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+    return [];
+  }
+};
+
+// Upload Calls
+export const getPfp = (userid: string): string => {
+  return `http://${API_BASE_URL}:3000/upload/pfp/${userid}`;
+};
+
+export const uploadPfp = async (userid: string, imageUri: string): Promise<string | null> => {
+  try {
+    const formData = new FormData();
+
+    formData.append('image', {
+      uri: imageUri,
+      type: 'image/jpeg',
+      name: `profile-${Date.now()}.jpg`
+    } as any);
+
+    // Append the user ID
+    formData.append('userid', userid);
+
+    const res = await fetch(`http://${API_BASE_URL}:3000/upload/`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to upload profile picture');
+
+    return data.url; // Absolute URL of new picture
+  } catch (err) {
+    Alert.alert('Upload Profile Picture Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+    return null;
   }
 };
 

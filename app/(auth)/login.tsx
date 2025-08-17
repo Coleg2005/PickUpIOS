@@ -13,7 +13,6 @@ export default function LoginScreen() {
     try {
       const res = await login(username, password);
       if (!res.ok) {
-        console.log('here')
         Alert.alert('Login Failed', res?.error || 'Invalid username or password');
         return;
       }
