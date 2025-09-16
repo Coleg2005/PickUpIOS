@@ -23,14 +23,12 @@ type FriendsListProps = {
 
 const FriendsList = ({ userid, onClose }: FriendsListProps) => {
 
-  const tintTextColor = useThemeColor({}, 'tint');
   const backgroundColor = useThemeColor({}, 'background');
-  const cardBackgroundColor = useThemeColor({}, 'cardBackground');
   const cardBorderColor = useThemeColor({}, 'cardBorder');
-  const cardTextColor = useThemeColor({}, 'cardText');
   const textColor = useThemeColor({}, 'text');
 
   const [friends, setFriends] = useState<any[]>([]);
+  const [refresh, setRefresh] = useState(false);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -42,7 +40,7 @@ const FriendsList = ({ userid, onClose }: FriendsListProps) => {
       }
     };
     fetchFriends();
-  }, [userid]);
+  }, [userid, refresh]);
 
 
   // all obvious
@@ -99,7 +97,7 @@ const FriendsList = ({ userid, onClose }: FriendsListProps) => {
                   )}
                 </View>
                 <Text style={{ fontSize: 18, flex: 1, color: textColor }}>{item.username}</Text>
-                <TouchableOpacity onPress={() => {removeFriend(userid, item._id)}}>
+                <TouchableOpacity onPress={() => {removeFriend(userid, item._id); setRefresh(!refresh)}}>
                   <View style={{ backgroundColor: '#d9534f', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 }}>
                     <Text style={{ color: '#fff', fontWeight: 'bold' }}>Remove</Text>
                   </View>

@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Alert } from 'react-native';
 
-export const API_BASE_URL = '10.0.0.58';
+export const API_BASE_URL = '10.3.53.108';
 
 
 // Auth Calls
@@ -110,7 +110,7 @@ export const removeGameMember = async (gameid: string, gameMember: string) => {
     if (!res.ok) throw new Error(data.error);
     return data;
   } catch(err) {
-    Alert.alert('Delete Game Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+    Alert.alert('Remove Game Member Failed', err instanceof Error ? err.message : 'An unknown error occurred');
   }
 }
 
@@ -227,9 +227,27 @@ export const getMessagesForGame = async (gameId: string) => {
 };
 
 // Friend Calls
-export const addFriend = async (userid: string, friendid: string) => {
+export const requestFriend = async (userid: string, friendid: string) => {
   try {
-    const res = await fetch(`http://${API_BASE_URL}:3000/friend/add`, {
+    const res = await fetch(`http://${API_BASE_URL}:3000/friend/request`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userid, friendid }),
+    });
+
+    console.log(res);
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (err) {
+    Alert.alert('Add Friend Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+  }
+}
+
+export const acceptFriend = async (userid: string, friendid: string) => {
+  try {
+    const res = await fetch(`http://${API_BASE_URL}:3000/friend/accept`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userid, friendid }),
@@ -307,4 +325,36 @@ export const uploadPfp = async (userid: string, imageUri: string): Promise<strin
     return null;
   }
 };
+
+// notification calls
+export const getNotifications = async (userid: string) => {
+  try {
+    const res = await fetch(`http://${API_BASE_URL}:3000/inbox/${userid}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (err) {
+    Alert.alert('Get Notifications Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+    return [];
+  }
+};
+
+export const deleteNotification = async (notificationid: string) => {
+  try{    
+    const res = await fetch(`http://${API_BASE_URL}:3000/inbox/${notificationid}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await res.json();
+    
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch(err) {
+    Alert.alert('Delete Notification Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+  }
+}
 

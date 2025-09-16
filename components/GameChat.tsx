@@ -10,7 +10,6 @@ import {
   Platform,
   Keyboard
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 import SocketService from '@/utils/socket';
@@ -18,7 +17,6 @@ import SocketService from '@/utils/socket';
 import { getMessagesForGame } from '@/utils/api';
 
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { useTheme } from '@react-navigation/native';
 
 
 // types
@@ -50,7 +48,6 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
 
 
   // all obvious
-  const insets = useSafeAreaInsets();
   const bottomSpace = useBottomTabBarHeight();
 
   const [messages, setMessages] = useState<Message[]>([]);

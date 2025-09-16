@@ -1,4 +1,5 @@
 import { StyleSheet, TouchableOpacity, Text, TextInput, View } from 'react-native';
+import { FSQ_KEY } from "@/env";
 import React, { useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -38,12 +39,12 @@ async function FetchPlaces(sport: string, radius: number) {
   radius = radius * 1609;
 
   try{
-    const url =`https://api.foursquare.com/v3/places/search?query=${sport}&ll=${coords.latitude}%2C${coords.longitude}&radius=${radius}&limit=50`;
+    const url =`https://places-api.foursquare.com/places/search?query=${sport}&ll=${coords.latitude}%2C${coords.longitude}&radius=${radius}&limit=50`;
     const options = {
       method: 'GET',
       headers: {
-        accept: 'application/json',
-        Authorization: 'fsq3ynGnxZsO0ZMa+Hm0PS3JQD/TVM+nm7bXs9uGrgkjAaU='
+        Authorization: `Bearer ${FSQ_KEY}`,
+        'X-Places-Api-Version': '2025-06-17'
       }
     };
 
@@ -106,7 +107,7 @@ export default function TabTwoScreen() {
           }
           const resultsWithGames = await Promise.all(
             fetchedPlaces.map(async (place: any) => {
-              const games = await getGamesLoc(place.fsq_id);
+              const games = await getGamesLoc(place.fsq_place_id);
               if (games && games.length > 0) {
                 place.numGames = games.length;
                 return place;
@@ -171,11 +172,11 @@ export default function TabTwoScreen() {
       <Collapsible title="Parks">
         {places && places.length > 0 ? (
           places.map((place: any) => (
-            <TouchableOpacity key={place.fsq_id} onPress={() => {
+            <TouchableOpacity key={place.fsq_place_id} onPress={() => {
               setSelectedSport(getSportLabel(sport));
               router.push({ 
                 pathname: '/(tabs)/pages/location/[locationID]', 
-                params: { locationID: place.fsq_id },
+                params: { locationID: place.fsq_place_id },
               });
             }}
               >
@@ -191,7 +192,7 @@ export default function TabTwoScreen() {
       <Collapsible title="Parks with Games">
         {placesWithGames && placesWithGames.length > 0 ? (
           placesWithGames.map((place: any) => (
-            <TouchableOpacity key={place.fsq_id} onPress={() => router.push({ pathname: '/(tabs)/pages/location/[locationID]', params: { locationID: place.fsq_id } })}>
+            <TouchableOpacity key={place.fsq_place_id} onPress={() => router.push({ pathname: '/(tabs)/pages/location/[locationID]', params: { locationID: place.fsq_place_id } })}>
               <Card title={place.name}>
                 <Text style={[{ color: textColor }]}>{place.name || 'No description'}</Text>
                 <Text style={[{ color: textColor }]}>Games: {place.numGames}</Text>

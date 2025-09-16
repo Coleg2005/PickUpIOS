@@ -8,8 +8,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 
 import { useLocalSearchParams } from 'expo-router';
 
-import { getUser, addFriend, removeFriend } from '@/utils/api';
-import { getPfp } from '@/utils/api';
+import { getUser, requestFriend, removeFriend, getPfp, getNotifications } from '@/utils/api';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { jwtDecode } from 'jwt-decode';
@@ -22,11 +21,23 @@ export default function Profile() {
   const [visitedUser, setVisitedUser] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [isFriend, setIsFriend] = useState<boolean>(false);
+  const [isPending, setIsPending] = useState<boolean>(false);
 
   useEffect(() => {
     if (user && visitedUser) {
       const friendIds = user.friends?.map((f: any) => f._id || f) || [];
       setIsFriend(friendIds.includes(visitedUser._id));
+      const fetchNotifications = async () => {
+        const notifs = await getNotifications(user._id);
+        const hasFriendRequest = notifs.some(
+          (notif: any) =>
+            notif.type === 'friend-request' &&
+            notif.object &&
+            notif.object._id === visitedUser._id
+        );
+        setIsPending(hasFriendRequest);
+      };
+      fetchNotifications();
     }
   }, [user, visitedUser]);
 
@@ -53,6 +64,7 @@ export default function Profile() {
           if (decoded?._id) {
             const res = await getUser(decoded._id)
             setUser(res.user);
+
           }
         }
       } catch (error) {
@@ -62,10 +74,10 @@ export default function Profile() {
     loadUser();
   }, []);
 
-  const handleAddFriend = async () => {
-    await addFriend(user._id, Array.isArray(userid) ? userid[0] : userid);
-    setIsFriend(true)
-    Alert.alert('Friend Added!');
+  const handleRequestFriend = async () => {
+    await requestFriend(user._id, Array.isArray(userid) ? userid[0] : userid);
+    setIsPending(true);
+    Alert.alert('Friend Request Sent!');
   };
 
   const handleRemoveFriend = async () => {
@@ -113,19 +125,33 @@ export default function Profile() {
             borderRadius: 10
           }}>
           <View style={{ width: '60%' }}>
-            {isFriend ? (
-              <Button
-                title="Remove Friend"
-                color={textColor}
-                onPress={() => {handleRemoveFriend()}}
-              />
-            ) : (            
-              <Button
-                title="Add Friend"
-                color={textColor}
-                onPress={() => {handleAddFriend()}}
-              />
-            )}
+            {(() => {
+              if (isFriend) {
+                return (
+                  <Button
+                    title="Remove Friend"
+                    color={textColor}
+                    onPress={() => {handleRemoveFriend()}}
+                  />
+                );
+              } else if (isPending) {
+                return (
+                  <Button
+                    title="Pending"
+                    color={textColor}
+                    onPress={() => {}}
+                  />
+                );
+              } else {
+                return (
+                  <Button
+                    title="Send Friend Request"
+                    color={textColor}
+                    onPress={() => {handleRequestFriend()}}
+                  />
+                );
+              }
+            })()}
           </View>
         </View>
 
@@ -134,6 +160,7 @@ export default function Profile() {
           <Text style={{ color: textColor, fontSize: 18, marginBottom: 4 }}>Description:</Text>
           <Text style={{ color: textColor, fontSize: 16, minHeight: 60, marginBottom: 8 }}>{visitedUser?.profile?.description || 'No description set.'}</Text>
         </View>
+
       </View>
     </ParallaxScrollView>
   );

@@ -74,8 +74,8 @@ export default function HomeScreen() {
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      >
-        <Header />
+    >
+      <Header />
       <Collapsible title="Games You Made">
         {leadGames && leadGames.length > 0 ? (
           leadGames.map((game: any) => (

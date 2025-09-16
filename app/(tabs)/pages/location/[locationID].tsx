@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Dropdown } from 'react-native-element-dropdown';
+import { FSQ_KEY } from "@/env";
 import { Text, StyleSheet, TouchableOpacity, View, Modal, TextInput, Button, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -17,15 +18,15 @@ import { getGamesLoc, createGame, getUser } from '@/utils/api';
 import { useSearchStore } from '@/utils/store';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
-async function FetchPlace(fsq_id: string) {
+async function FetchPlace(fsq_place_id: string) {
 
   try{
-    const url =`https://api.foursquare.com/v3/places/${fsq_id}`;
+    const url =`https://places-api.foursquare.com/places/${fsq_place_id}`;
     const options = {
       method: 'GET',
       headers: {
-        accept: 'application/json',
-        Authorization: 'fsq3ynGnxZsO0ZMa+Hm0PS3JQD/TVM+nm7bXs9uGrgkjAaU='
+        Authorization: `Bearer ${FSQ_KEY}`,
+        'X-Places-Api-Version': '2025-06-17'
       }
     };
 

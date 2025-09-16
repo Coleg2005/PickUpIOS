@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import { View, Text, Button, Alert, TextInput, Image, TouchableOpacity } from 'react-native';
-
+import { useFocusEffect } from '@react-navigation/native';
 
 import Header from '@/components/Header';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -9,7 +9,7 @@ import FriendsList from '@/components/FriendsList';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
 import { logout } from '@/utils/auth';
-import { getUser, updateProfile, uploadPfp, getPfp } from '@/utils/api';
+import { getUser, updateProfile, uploadPfp, getPfp, getFriends } from '@/utils/api';
 
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -26,6 +26,7 @@ export default function Profile() {
   const [description, setDescription] = useState('');
   const [friendsVisible, setFriendsVisible] = useState(false);
   const [refresh, setRefresh] = useState(false);
+  const [friends, setFriends] = useState<any[]>([]);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -47,6 +48,23 @@ export default function Profile() {
     };
     loadUser();
   }, [refresh]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!user) return;
+      let isActive = true;
+      const fetchFriends = async () => {
+        try {
+          const res = await getFriends(user._id);
+          if (isActive) setFriends(res || []);
+        } catch (error) {
+          console.error('Failed to fetch friends:', error);
+        }
+      };
+      fetchFriends();
+      return () => { isActive = false; };
+    }, [user, refresh])
+  );
 
 
   const handleLogout = async () => {
@@ -123,7 +141,10 @@ export default function Profile() {
           {/* Friends Button */}
           <View style={{ marginBottom: 12 }}>
             <TouchableOpacity onPress={() => {setFriendsVisible(true)}} activeOpacity={0.7}>
-              <IconSymbol size={28} name="person" color={tint} />
+              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <IconSymbol size={28} name="person" color={tint} />
+                <Text style={{color: tint, fontSize: 22, marginTop: 2, textAlign: 'center'}}>{friends ? friends.length : 0}</Text>
+              </View>
             </TouchableOpacity>
           </View>
           

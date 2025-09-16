@@ -1,13 +1,10 @@
 today:
-make inbox for notifications
 
 notification for:
-someone requests to add you as a friend,
 game starts soon,
 game chat messages,
 
 this week:
-make notification bubble either on settings gear or inbox tab
 
 
 this month:
@@ -17,7 +14,7 @@ implement notifications
 ideas for whenever:
 
 make disclaimer with place accuracy and park availability, implement notifications,
-add sport filter for index
+add sport filter for index, tell how far place is, check if picture is available. 
 
 All Time:
 
