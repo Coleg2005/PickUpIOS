@@ -57,75 +57,77 @@ const Inbox = () => {
   }
     
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-    >
-      <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: backgroundColor }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <View style={{ flex: 1 }}>
+      <Header />
+      <ParallaxScrollView
+        headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       >
-        <Header />
-        <View style={{ flex: 1, backgroundColor: backgroundColor, borderColor: cardBorderColor, paddingBottom: tabBarHeight, paddingTop: 0 }}>
-          <Text style={{ fontSize: 22, fontWeight: 'bold', color: textColor, textAlign: 'center', paddingVertical: 18, borderBottomWidth: 1, borderColor: cardBorderColor }}>
-            Inbox
-          </Text>
-          {(!notifications || notifications.length === 0) ? (
-            <Text style={{ textAlign: 'center', marginTop: 32, color: '#888' }}>No notifications yet.</Text>
-          ) : (
-            notifications.map((item, idx) => {
-              let notificationContent;
-              if (item.type === 'friend-request') {
-                const friend = item.object;
-                notificationContent = (
-                  <View>
-                    <Text style={{ fontSize: 17, color: textColor }}>
-                      Friend request from: <Text style={{ fontWeight: 'bold', color: textColor }}>{friend.username}</Text>
-                    </Text>
-                    <View style={{ flexDirection: 'row', marginTop: 10 }}>
-                      <View style={{ flex: 1, marginRight: 8 }}>
-                        <Text style={{ backgroundColor: '#27ae60', color: 'white', textAlign: 'center', paddingVertical: 8, borderRadius: 6, fontWeight: 'bold', }}
-                          onPress={() => {accept(item.recipient, friend._id, item._id)}}
-                        >
-                          Accept
-                        </Text>
-                      </View>
-                      <View style={{ flex: 1, marginLeft: 8 }}>
-                        <Text style={{ backgroundColor: '#e74c3c', color: 'white', textAlign: 'center', paddingVertical: 8, borderRadius: 6, fontWeight: 'bold', }}
-                          onPress={() => {rejection(item._id)}}
-                        >
-                          Reject
-                        </Text>
+        <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: backgroundColor }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={{ flex: 1, backgroundColor: backgroundColor, borderColor: cardBorderColor, paddingBottom: tabBarHeight, paddingTop: 0 }}>
+            <Text style={{ fontSize: 22, fontWeight: 'bold', color: textColor, textAlign: 'center', paddingVertical: 10, borderBottomWidth: 1, borderColor: cardBorderColor }}>
+              Inbox
+            </Text>
+            {(!notifications || notifications.length === 0) ? (
+              <Text style={{ textAlign: 'center', marginTop: 32, color: '#888' }}>No notifications yet.</Text>
+            ) : (
+              notifications.map((item, idx) => {
+                let notificationContent;
+                if (item.type === 'friend-request') {
+                  const friend = item.object;
+                  notificationContent = (
+                    <View>
+                      <Text style={{ fontSize: 17, color: textColor }}>
+                        Friend request from: <Text style={{ fontWeight: 'bold', color: textColor }}>{friend.username}</Text>
+                      </Text>
+                      <View style={{ flexDirection: 'row', marginTop: 10 }}>
+                        <View style={{ flex: 1, marginRight: 8 }}>
+                          <Text style={{ backgroundColor: '#27ae60', color: 'white', textAlign: 'center', paddingVertical: 8, borderRadius: 6, fontWeight: 'bold', }}
+                            onPress={() => {accept(item.recipient, friend._id, item._id)}}
+                          >
+                            Accept
+                          </Text>
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 8 }}>
+                          <Text style={{ backgroundColor: '#e74c3c', color: 'white', textAlign: 'center', paddingVertical: 8, borderRadius: 6, fontWeight: 'bold', }}
+                            onPress={() => {rejection(item._id)}}
+                          >
+                            Reject
+                          </Text>
+                        </View>
                       </View>
                     </View>
-                  </View>
-                );
-              } else if (item.type === 'upcoming-game') {
-                notificationContent = (
-                  <Text>Upcoming game: {item.name}</Text>
-                );
-              } else {
-                notificationContent = (
-                  <Text style={{ fontSize: 17, color: textColor }}>
-                    {item.message || item.name}
-                  </Text>
-                );
-              }
+                  );
+                } else if (item.type === 'upcoming-game') {
+                  notificationContent = (
+                    <Text>Upcoming game: {item.name}</Text>
+                  );
+                } else {
+                  notificationContent = (
+                    <Text style={{ fontSize: 17, color: textColor }}>
+                      {item.message || item.name}
+                    </Text>
+                  );
+                }
 
-              return (
-                <React.Fragment key={item._id}>
-                  <View style={{ paddingVertical: 16, paddingHorizontal: 18, backgroundColor: backgroundColor }}>
-                    {notificationContent}
-                  </View>
-                  {idx < notifications.length - 1 && (
-                    <View style={{ height: 1, backgroundColor: cardBorderColor, marginHorizontal: 12 }} />
-                  )}
-                </React.Fragment>
-              );
-            })
-          )}
-        </View>
-      </KeyboardAvoidingView>
-    </ParallaxScrollView>
+                return (
+                  <React.Fragment key={item._id}>
+                    <View style={{ paddingVertical: 16, paddingHorizontal: 18, backgroundColor: backgroundColor }}>
+                      {notificationContent}
+                    </View>
+                    {idx < notifications.length - 1 && (
+                      <View style={{ height: 1, backgroundColor: cardBorderColor, marginHorizontal: 12 }} />
+                    )}
+                  </React.Fragment>
+                );
+              })
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </ParallaxScrollView>
+    </View>
   );
 };
 

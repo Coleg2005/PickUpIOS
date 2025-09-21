@@ -9,6 +9,8 @@ import { jwtDecode } from 'jwt-decode';
 import * as SecureStore from 'expo-secure-store';
 import { getUser, getNotifications } from '@/utils/api';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 
 const Header = () => {
   const colorScheme = useColorScheme();
@@ -45,7 +47,8 @@ const Header = () => {
   );
 
   return (
-    <View
+    <SafeAreaView
+      edges={['top']} // Ensures padding is applied only to the top
       style={[
         styles.container,
         { backgroundColor: Colors[colorScheme ?? 'light'].background },
@@ -55,7 +58,7 @@ const Header = () => {
         PickUp
       </Text>
 
-      <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center', pointerEvents: 'none' }}>
+      <View style={{ left: 0, right: 0, alignItems: 'center', pointerEvents: 'none' }}>
         <Text style={{ color: Colors[colorScheme ?? 'light'].text, fontWeight: 'bold', fontSize: 20 }}>
           {username ? `${username}` : ''}
         </Text>
@@ -86,7 +89,7 @@ const Header = () => {
           <Ionicons name="settings-outline" size={28} color={Colors[colorScheme ?? 'light'].text} />
         </TouchableOpacity>
       </View>
-    </View>    
+    </SafeAreaView>    
   );
 };
 

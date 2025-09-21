@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -72,37 +72,39 @@ export default function HomeScreen() {
   const textColor = useThemeColor({}, 'text');
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-    >
+    <View style={{ flex: 1 }}>
       <Header />
-      <Collapsible title="Games You Made">
-        {leadGames && leadGames.length > 0 ? (
-          leadGames.map((game: any) => (
-            <TouchableOpacity key={game._id} onPress={() => router.push({ pathname: '/(tabs)/pages/game/[gameid]', params: { gameid: game._id } })}>
-              <Card title={game.name}>
-                <Text>{game.description || 'No description'}</Text>
-              </Card>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text style={[{ color: textColor }]}>No games found.</Text>
-        )}
-      </Collapsible>
-      <Collapsible title="Games You're In">
-        {memberGames && memberGames.length > 0 ? (
-          memberGames.map((game: any) => (
-            <TouchableOpacity key={game._id} onPress={() => router.push({ pathname: '/(tabs)/pages/game/[gameid]', params: { gameid: game._id } })}>
-              <Card title={game.name}>
-                <Text>{game.description || 'No description'}</Text>
-              </Card>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text style={[{ color: textColor }]}>No games found.</Text>
-        )}
-      </Collapsible>
-    </ParallaxScrollView>
+      <ParallaxScrollView
+        headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      >
+        <Collapsible title="Games You Made">
+          {leadGames && leadGames.length > 0 ? (
+            leadGames.map((game: any) => (
+              <TouchableOpacity key={game._id} onPress={() => router.push({ pathname: '/(tabs)/pages/game/[gameid]', params: { gameid: game._id } })}>
+                <Card title={game.name}>
+                  <Text>{game.description || 'No description'}</Text>
+                </Card>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={[{ color: textColor }]}>No games found.</Text>
+          )}
+        </Collapsible>
+        <Collapsible title="Games You're In">
+          {memberGames && memberGames.length > 0 ? (
+            memberGames.map((game: any) => (
+              <TouchableOpacity key={game._id} onPress={() => router.push({ pathname: '/(tabs)/pages/game/[gameid]', params: { gameid: game._id } })}>
+                <Card title={game.name}>
+                  <Text>{game.description || 'No description'}</Text>
+                </Card>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={[{ color: textColor }]}>No games found.</Text>
+          )}
+        </Collapsible>
+      </ParallaxScrollView>
+    </View>
   );
 }
 

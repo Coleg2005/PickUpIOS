@@ -1,7 +1,6 @@
 today:
 
 notification for:
-game starts soon,
 game chat messages,
 
 this week:
@@ -13,9 +12,12 @@ implement notifications
 
 ideas for whenever:
 
-make disclaimer with place accuracy and park availability, implement notifications,
+make disclaimer with place accuracy and park availability, 
 add sport filter for index, tell how far place is, check if picture is available. 
 
 All Time:
 
 Deploy
+
+after cal test:
+

@@ -206,10 +206,10 @@ export default function PlaceScreen() {
         </TouchableWithoutFeedback>
       </Modal>
 
+      <Header />
       <ParallaxScrollView
         headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       >
-        <Header />
         <View style={[{
           flexDirection: 'row',
           justifyContent: 'space-between',

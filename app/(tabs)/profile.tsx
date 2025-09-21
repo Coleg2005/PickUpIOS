@@ -110,10 +110,10 @@ export default function Profile() {
 
   return (
     <View style={{ flex: 1 }}>
+      <Header />
       <ParallaxScrollView
         headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       >
-        <Header />
         <View style={{ padding: 16, alignItems: 'center' }}>
 
           {/* Profile Picture */}

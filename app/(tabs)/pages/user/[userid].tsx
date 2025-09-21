@@ -91,77 +91,79 @@ export default function Profile() {
   const textColor = useThemeColor({}, 'text');
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-    >
+    <View style={{ flex: 1 }}>
       <Header />
-      <View style={{ padding: 16, alignItems: 'center' }}>
-        {/* Profile Picture */}
-        <View style={{ marginBottom: 16 }}>
-          <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#eee', overflow: 'hidden', marginBottom: 8, borderWidth: 2, borderColor: cardBackgroundColor }}>
-            {visitedUser?.profile?.picture ? (
-              <Image
-                source={{ uri: getPfp(visitedUser._id) }}
-                style={{ width: 100, height: 100, borderRadius: 50 }}
-                resizeMode="cover"
-              />
-            ) : (
-              <Text style={{ textAlign: 'center', lineHeight: 100, color: '#aaa', fontSize: 40 }}>
-                {visitedUser?.username?.[0]?.toUpperCase() || '?'}
-              </Text>
-            )}
+      <ParallaxScrollView
+        headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      >
+        <View style={{ padding: 16, alignItems: 'center' }}>
+          {/* Profile Picture */}
+          <View style={{ marginBottom: 16 }}>
+            <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#eee', overflow: 'hidden', marginBottom: 8, borderWidth: 2, borderColor: cardBackgroundColor }}>
+              {visitedUser?.profile?.picture ? (
+                <Image
+                  source={{ uri: getPfp(visitedUser._id) }}
+                  style={{ width: 100, height: 100, borderRadius: 50 }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Text style={{ textAlign: 'center', lineHeight: 100, color: '#aaa', fontSize: 40 }}>
+                  {visitedUser?.username?.[0]?.toUpperCase() || '?'}
+                </Text>
+              )}
+            </View>
           </View>
-        </View>
-        {/* Username */}
-        <Text style={{ color: textColor, fontSize: 24, fontWeight: 'bold', marginBottom: 4 }}>{visitedUser?.username || 'Username'}</Text>
-        
-        {/* Add Friend Button */}
-        <View style={{ 
-            alignItems: 'center', 
-            marginBottom: 16, 
-            backgroundColor: cardBackgroundColor, 
-            borderWidth: 1, 
-            borderColor: borderColor,
-            borderRadius: 10
-          }}>
-          <View style={{ width: '60%' }}>
-            {(() => {
-              if (isFriend) {
-                return (
-                  <Button
-                    title="Remove Friend"
-                    color={textColor}
-                    onPress={() => {handleRemoveFriend()}}
-                  />
-                );
-              } else if (isPending) {
-                return (
-                  <Button
-                    title="Pending"
-                    color={textColor}
-                    onPress={() => {}}
-                  />
-                );
-              } else {
-                return (
-                  <Button
-                    title="Send Friend Request"
-                    color={textColor}
-                    onPress={() => {handleRequestFriend()}}
-                  />
-                );
-              }
-            })()}
+          {/* Username */}
+          <Text style={{ color: textColor, fontSize: 24, fontWeight: 'bold', marginBottom: 4 }}>{visitedUser?.username || 'Username'}</Text>
+          
+          {/* Add Friend Button */}
+          <View style={{ 
+              alignItems: 'center', 
+              marginBottom: 16, 
+              backgroundColor: cardBackgroundColor, 
+              borderWidth: 1, 
+              borderColor: borderColor,
+              borderRadius: 10
+            }}>
+            <View style={{ width: '60%' }}>
+              {(() => {
+                if (isFriend) {
+                  return (
+                    <Button
+                      title="Remove Friend"
+                      color={textColor}
+                      onPress={() => {handleRemoveFriend()}}
+                    />
+                  );
+                } else if (isPending) {
+                  return (
+                    <Button
+                      title="Pending"
+                      color={textColor}
+                      onPress={() => {}}
+                    />
+                  );
+                } else {
+                  return (
+                    <Button
+                      title="Send Friend Request"
+                      color={textColor}
+                      onPress={() => {handleRequestFriend()}}
+                    />
+                  );
+                }
+              })()}
+            </View>
           </View>
-        </View>
 
-        {/* Description */}
-        <View style={{ width: '100%', marginBottom: 16 }}>
-          <Text style={{ color: textColor, fontSize: 18, marginBottom: 4 }}>Description:</Text>
-          <Text style={{ color: textColor, fontSize: 16, minHeight: 60, marginBottom: 8 }}>{visitedUser?.profile?.description || 'No description set.'}</Text>
-        </View>
+          {/* Description */}
+          <View style={{ width: '100%', marginBottom: 16 }}>
+            <Text style={{ color: textColor, fontSize: 18, marginBottom: 4 }}>Description:</Text>
+            <Text style={{ color: textColor, fontSize: 16, minHeight: 60, marginBottom: 8 }}>{visitedUser?.profile?.description || 'No description set.'}</Text>
+          </View>
 
-      </View>
-    </ParallaxScrollView>
+        </View>
+      </ParallaxScrollView>
+    </View>
   );
 }

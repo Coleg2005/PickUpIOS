@@ -3,6 +3,7 @@ import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import * as SecureStore from 'expo-secure-store';
 import { jwtDecode } from 'jwt-decode';
 
@@ -18,6 +19,8 @@ export default function GameScreen() {
   const router = useRouter();
 
   const { gameid } = useLocalSearchParams();
+
+  const bottomSpace = useBottomTabBarHeight();
 
   const [user, setUser] = useState<any>(null);
   const [members, setMembers] = useState<User[]>([]);
@@ -56,7 +59,7 @@ export default function GameScreen() {
             setMembers(fetchedGame.gameMembers);
             setGameName(fetchedGame.name);
             setLeader(fetchedGame.leader);
-            setDate(fetchedGame.date);
+            setDate(new Date(fetchedGame.date));
             setLocation(fetchedGame.location);
             setSport(fetchedGame.sport);
             setDescription(fetchedGame.description);
@@ -84,17 +87,17 @@ export default function GameScreen() {
 
   return (
     <View style={{ flex: 1 }}>
+      <Header />
       <ParallaxScrollView
         headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       >
-        <Header />
         <View style={{ margin: 16, padding: 20, backgroundColor: cardBackgroundColor, borderRadius: 16, borderColor: cardBorderColor, borderWidth: 1, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8 }}>
           <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 8, color: textColor }}>{gameName}</Text>
           <View style={{ marginBottom: 12 }}>
             <Text style={{ fontSize: 18, fontWeight: '600', color: textColor }}>Leader: <Text style={{ fontWeight: '400' }}>{leader?.username ?? 'Unknown'}</Text></Text>
-            <Text style={{ fontSize: 16, color: textColor }}>Date: <Text style={{ fontWeight: '400' }}>{date.toLocaleString()}</Text></Text>
-            <Text style={{ fontSize: 16, color: textColor }}>Location: <Text style={{ fontWeight: '400' }}>{location}</Text></Text>
-            <Text style={{ fontSize: 16, color: textColor }}>Sport: <Text style={{ fontWeight: '400' }}>{sport}</Text></Text>
+            <Text style={{ fontSize: 16, color: textColor }}>On <Text style={{ fontWeight: '400' }}>{date ? date.toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}</Text></Text>
+            <Text style={{ fontSize: 16, color: textColor }}>At <Text style={{ fontWeight: '400' }}>{location}</Text></Text>
+            <Text style={{ fontSize: 16, color: textColor }}>Playing <Text style={{ fontWeight: '400' }}>{sport}</Text></Text>
           </View>
           <Text style={{ fontSize: 16, color: textColor, marginBottom: 8 }}>Description:</Text>
           <Text style={{ fontSize: 16, color: tintColor, marginBottom: 16 }}>{description || 'No description'}</Text>
@@ -126,42 +129,42 @@ export default function GameScreen() {
             <Text style={{ color: textColor }}>No members found.</Text>
           )}
         </View>
-        <TouchableOpacity
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            right: 24,
-            backgroundColor: '#007AFF',
-            borderRadius: 32,
-            paddingVertical: 16,
-            paddingHorizontal: 24,
-          }}
-          onPress={async () => {
-            const gameId = Array.isArray(gameid) ? gameid[0] : gameid;
-            if (!user?._id) {
-              console.log('User is not loaded');
-              return;
-            }
-            if (leader && user._id === leader._id) {
-              await deleteGame(gameId);
-              router.back()
-              return;
-            }
-            const isMember = members.some((member: any) => member._id === user._id);
-            if (isMember) {
-              await removeGameMember(gameId, user._id);
-              setRefreshFlag((prev) => prev === 1 ? 0 : 1);
-              return;
-            }
-            await addGameMember(gameId, user._id);
-            setRefreshFlag((prev) => prev === 1 ? 0 : 1);
-          }}
-        >
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>
-            {buttonText}
-          </Text>
-        </TouchableOpacity>
       </ParallaxScrollView>
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          bottom: bottomSpace + 65,
+          right: 25,
+          backgroundColor: '#007AFF',
+          borderRadius: 32,
+          paddingVertical: 16,
+          paddingHorizontal: 24,
+        }}
+        onPress={async () => {
+          const gameId = Array.isArray(gameid) ? gameid[0] : gameid;
+          if (!user?._id) {
+            console.log('User is not loaded');
+            return;
+          }
+          if (leader && user._id === leader._id) {
+            await deleteGame(gameId);
+            router.back()
+            return;
+          }
+          const isMember = members.some((member: any) => member._id === user._id);
+          if (isMember) {
+            await removeGameMember(gameId, user._id);
+            setRefreshFlag((prev) => prev === 1 ? 0 : 1);
+            return;
+          }
+          await addGameMember(gameId, user._id);
+          setRefreshFlag((prev) => prev === 1 ? 0 : 1);
+        }}
+      >
+        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>
+          {buttonText}
+        </Text>
+      </TouchableOpacity>
       {}
       {user && members.some((member: any) => member._id === user._id) && (
         <GameChat

@@ -389,7 +389,7 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
             onPress={sendMessage}
             disabled={!inputText.trim() || !isConnected}
           >
-            <Text style={{ color: textColor, fontWeight: 'bold' }}>Send</Text>
+            <Text style={{ color: '#ECEDEE', fontWeight: 'bold' }}>Send</Text>
           </TouchableOpacity>
         </View>
       </View>

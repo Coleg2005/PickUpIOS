@@ -171,17 +171,12 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                   router.push('/profile');
                 }}
               />
-              <SettingsItem
-                icon="notifications-outline"
-                title="Notifications"
-                onPress={() => console.log('Notifications')}
-              />
             </View>
           </View>
 
           {/* App Section */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textColor + '60' }]}>APP</Text>
+          {/* <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: textColor + '60' }]}>APPEARANCE</Text>
             <View style={[styles.sectionContent, { backgroundColor: backgroundColor, borderColor: borderColor + '20' }]}>
               <SettingsItem
                 icon="color-palette-outline"
@@ -189,7 +184,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
                 onPress={() => console.log('Appearance')}
               />
             </View>
-          </View>
+          </View> */}
 
           {/* Danger Zone */}
           <View style={styles.section}>

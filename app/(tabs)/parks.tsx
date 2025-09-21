@@ -132,78 +132,80 @@ export default function TabTwoScreen() {
   const backgroundColor = useThemeColor({}, 'background');
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-    >
+    <View style={{ flex: 1 }}>
       <Header />
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <View style={{ flex: 1, marginRight: 8 }}>
-          <Text style={[{ color: textColor }]} >Radius (miles):</Text>
-          <TextInput
-            value={radius.toString()}
-            onChangeText={text => {
-              let val = Number(text);
-              val = Math.max(1, Math.min(val, 50));
-              setRadius(val);
-            }}
-            keyboardType="numeric"
-            style={{ borderWidth: 1, borderRadius: 8, padding: 8, borderColor: borderColor, color: textColor }}
-          />
+      <ParallaxScrollView
+        headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <View style={{ flex: 1, marginRight: 8 }}>
+            <Text style={[{ color: textColor }]} >Radius (miles):</Text>
+            <TextInput
+              value={radius.toString()}
+              onChangeText={text => {
+                let val = Number(text);
+                val = Math.max(1, Math.min(val, 50));
+                setRadius(val);
+              }}
+              keyboardType="numeric"
+              style={{ borderWidth: 1, borderRadius: 8, padding: 8, borderColor: borderColor, color: textColor }}
+            />
+          </View>
+          <View style={{ flex: 1, marginLeft: 8 }}>
+            <Text style={[{ color: textColor }]}>Sport:</Text>
+            <Dropdown
+              data={items}
+              labelField="label"
+              valueField="value"
+              value={sport}
+              onChange={item => setSport(item.value)}
+              placeholder="Select sport"
+              style={{ borderWidth: 1, borderRadius: 8, padding: 8, borderColor: borderColor, backgroundColor: backgroundColor }}
+              containerStyle={{ borderRadius: 8, backgroundColor: cardBackgroundColor, borderColor: borderColor, borderWidth: 1 }}
+              itemTextStyle={{ fontSize: 16, color: textColor, backgroundColor: cardBackgroundColor }}
+              selectedTextStyle={{ fontSize: 16, color: textColor, backgroundColor: backgroundColor }}
+              activeColor={cardBackgroundColor}
+              inputSearchStyle={{ color: textColor, backgroundColor: cardBackgroundColor, borderColor: borderColor }}
+            />
+          </View>
         </View>
-        <View style={{ flex: 1, marginLeft: 8 }}>
-          <Text style={[{ color: textColor }]}>Sport:</Text>
-          <Dropdown
-            data={items}
-            labelField="label"
-            valueField="value"
-            value={sport}
-            onChange={item => setSport(item.value)}
-            placeholder="Select sport"
-            style={{ borderWidth: 1, borderRadius: 8, padding: 8, borderColor: borderColor, backgroundColor: backgroundColor }}
-            containerStyle={{ borderRadius: 8, backgroundColor: cardBackgroundColor, borderColor: borderColor, borderWidth: 1 }}
-            itemTextStyle={{ fontSize: 16, color: textColor, backgroundColor: cardBackgroundColor }}
-            selectedTextStyle={{ fontSize: 16, color: textColor, backgroundColor: backgroundColor }}
-            activeColor={cardBackgroundColor}
-            inputSearchStyle={{ color: textColor, backgroundColor: cardBackgroundColor, borderColor: borderColor }}
-          />
-        </View>
-      </View>
 
-      <Collapsible title="Parks">
-        {places && places.length > 0 ? (
-          places.map((place: any) => (
-            <TouchableOpacity key={place.fsq_place_id} onPress={() => {
-              setSelectedSport(getSportLabel(sport));
-              router.push({ 
-                pathname: '/(tabs)/pages/location/[locationID]', 
-                params: { locationID: place.fsq_place_id },
-              });
-            }}
-              >
-              <Card title={place.name}>
-                <Text style={[{ color: textColor }]}>{place.name || 'No description'}</Text>
-              </Card>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text style={[{ color: textColor }]}>No places found.</Text>
-        )}
-      </Collapsible>
-      <Collapsible title="Parks with Games">
-        {placesWithGames && placesWithGames.length > 0 ? (
-          placesWithGames.map((place: any) => (
-            <TouchableOpacity key={place.fsq_place_id} onPress={() => router.push({ pathname: '/(tabs)/pages/location/[locationID]', params: { locationID: place.fsq_place_id } })}>
-              <Card title={place.name}>
-                <Text style={[{ color: textColor }]}>{place.name || 'No description'}</Text>
-                <Text style={[{ color: textColor }]}>Games: {place.numGames}</Text>
-              </Card>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <Text style={[{ color: textColor }]}>No places with games found.</Text>
-        )}
-      </Collapsible>
-    </ParallaxScrollView>
+        <Collapsible title="Parks">
+          {places && places.length > 0 ? (
+            places.map((place: any) => (
+              <TouchableOpacity key={place.fsq_place_id} onPress={() => {
+                setSelectedSport(getSportLabel(sport));
+                router.push({ 
+                  pathname: '/(tabs)/pages/location/[locationID]', 
+                  params: { locationID: place.fsq_place_id },
+                });
+              }}
+                >
+                <Card title={place.name}>
+                  <Text style={[{ color: textColor }]}>{place.name || 'No description'}</Text>
+                </Card>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={[{ color: textColor }]}>No places found.</Text>
+          )}
+        </Collapsible>
+        <Collapsible title="Parks with Games">
+          {placesWithGames && placesWithGames.length > 0 ? (
+            placesWithGames.map((place: any) => (
+              <TouchableOpacity key={place.fsq_place_id} onPress={() => router.push({ pathname: '/(tabs)/pages/location/[locationID]', params: { locationID: place.fsq_place_id } })}>
+                <Card title={place.name}>
+                  <Text style={[{ color: textColor }]}>{place.name || 'No description'}</Text>
+                  <Text style={[{ color: textColor }]}>Games: {place.numGames}</Text>
+                </Card>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={[{ color: textColor }]}>No places with games found.</Text>
+          )}
+        </Collapsible>
+      </ParallaxScrollView>
+    </View>
   );
 }
 
