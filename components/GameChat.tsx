@@ -225,9 +225,10 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
     }
 
     // else is a message sent by a person
+    
     return (
       <View style={{
-        marginVertical: 4,
+        marginVertical: 0,
         padding: 12,
         borderRadius: 8,
         maxWidth: '90%',
@@ -319,7 +320,7 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
             borderBottomColor: cardBorderColor
           }}
           onPress={() => setIsVisible(false)}
-          activeOpacity={0.7}
+          activeOpacity={1}
         >
           <Text style={{ fontSize: 18, fontWeight: 'bold', color: textColor }}>Game Chat</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -333,20 +334,20 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
             <Text style={{ fontSize: 20, color: textColor }}>▼</Text>
           </View>
         </TouchableOpacity>
-
+        
         <FlatList
           ref={flatListRef}
           data={getMessagesWithDateSeparators(messages)}
           keyExtractor={(item) => item._id}
           renderItem={renderMessage}
-          style={{ flex: 1, backgroundColor: backgroundColor, minHeight: 120, borderBottomWidth: 1, borderColor: cardBorderColor, bottom: bottomSpace }}
+          style={{ flex: 1, backgroundColor: backgroundColor, minHeight: 120, borderColor: cardBorderColor, bottom: bottomSpace }}
           contentContainerStyle={{ padding: 8, flexGrow: 1, justifyContent: 'flex-end' }}
           onContentSizeChange={scrollToBottom}
         />
 
         <View style={{
           flexDirection: 'row',
-          padding: 12,
+          paddingBottom: 6,
           borderTopWidth: 1,
           borderTopColor: cardBorderColor,
           alignItems: 'flex-end',
