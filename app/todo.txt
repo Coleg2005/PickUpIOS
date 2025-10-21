@@ -13,7 +13,7 @@ implement notifications
 ideas for whenever:
 
 make disclaimer with place accuracy and park availability, 
-add sport filter for index, tell how far place is, check if picture is available. 
+tell how far place is, check if picture is available. 
 
 All Time:
 

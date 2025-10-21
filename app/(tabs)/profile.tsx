@@ -118,20 +118,41 @@ export default function Profile() {
 
           {/* Profile Picture */}
           <View style={{ marginBottom: 16 }}>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => {addProfilePic()}}>
-              <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#eee', overflow: 'hidden', marginBottom: 8, borderWidth: 2, borderColor: cardBackgroundColor }}>
-                    {pfpUrl ? (
-                      <Image
-                        source={{ uri: pfpUrl }}
-                        style={{ width: 100, height: 100, borderRadius: 50 }}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <Text style={{ textAlign: 'center', lineHeight: 100, color: '#aaa', fontSize: 40 }}>
-                        {user?.username?.[0]?.toUpperCase() || '?'}
-                      </Text>
-                    )}
-                  </View>
+            <TouchableOpacity activeOpacity={0.7} onPress={addProfilePic}>
+              <View
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  overflow: 'hidden',
+                  marginBottom: 8,
+                }}
+              >
+                {pfpUrl ? (
+                  <Image
+                    source={{ uri: pfpUrl }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: 50,
+                      borderWidth: 2,
+                      borderColor: cardBackgroundColor,
+                    }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text
+                    style={{
+                      textAlign: 'center',
+                      lineHeight: 100,
+                      color: '#aaa',
+                      fontSize: 40,
+                    }}
+                  >
+                    {user?.username?.[0]?.toUpperCase() || '?'}
+                  </Text>
+                )}
+              </View>
             </TouchableOpacity>
           </View>
 

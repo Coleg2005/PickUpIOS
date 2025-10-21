@@ -68,6 +68,7 @@ async function FetchPlaces(sport: string, radius: number) {
 const getSportLabel = (sportValue: string) => {
   const sportMap = {
     'basketball%20court': 'basketball',
+    'baseball%20field': 'baseball',
     'soccer%20field': 'soccer', 
     'tennis%20court': 'tennis',
     'pickleball': 'pickleball',
@@ -88,6 +89,7 @@ export default function TabTwoScreen() {
   // Dropdown data for element-dropdown
   const items = [
     { label: 'Basketball', value: 'basketball%20court' },
+    { label: 'Baseball', value: 'baseball%20field' },
     { label: 'Soccer', value: 'soccer%20field' },
     { label: 'Tennis', value: 'tennis%20court' },
     { label: 'Pickleball', value: 'pickleball' },
@@ -124,6 +126,12 @@ export default function TabTwoScreen() {
       fetchData();
     }, [sport, radius])
   );
+
+  const getAddress = (place: any) => {
+    if (!place?.location) return '';
+    const { address, locality, region } = place.location;
+    return [address, locality, region].filter(Boolean).join(', ');
+  };
 
   
   const textColor = useThemeColor({}, 'text');
@@ -182,7 +190,17 @@ export default function TabTwoScreen() {
               }}
                 >
                 <Card title={place.name}>
-                  <Text style={[{ color: textColor }]}>{place.name || 'No description'}</Text>
+                  {!!getAddress(place) ? (
+                    <Text style={[{ 
+                      color: textColor + 'CC',
+                      fontSize: 14,
+                      lineHeight: 20,
+                    }]}>
+                      {getAddress(place)}
+                    </Text>
+                  ) : (
+                    <Text style={{ color: textColor }}>No Address Detected</Text>
+                  )}
                 </Card>
               </TouchableOpacity>
             ))

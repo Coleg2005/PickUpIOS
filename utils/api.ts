@@ -1,13 +1,14 @@
 import * as SecureStore from 'expo-secure-store';
 import { Alert } from 'react-native';
 
-export const API_BASE_URL = '10.3.53.108';
+export const API_BASE_URL = 'https://pickupiosbackend.me';
+
 
 
 // Auth Calls
 export const register = async (username: string, password: string) => {
   try{
-    const res = await fetch(`http://${API_BASE_URL}:3000/auth/register`, {
+    const res = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
@@ -25,7 +26,7 @@ export const register = async (username: string, password: string) => {
 
 export const login = async (username: string, password: string) => {
   try{
-    const res = await fetch(`http://${API_BASE_URL}:3000/auth/login`, {
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
@@ -53,7 +54,7 @@ export const logout = async () => {
 
 export const getUser = async (id: string) => {
   try{
-    const res = await fetch(`http://${API_BASE_URL}:3000/auth/user/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/auth/user/${id}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -69,7 +70,7 @@ export const getUser = async (id: string) => {
 // Game Calls
 export const createGame = async (name: string, date: Date, location: string, fsq_id: string, sport: string, leader: string, description: string) => {
   try{
-    const res = await fetch(`http://${API_BASE_URL}:3000/game`, {
+    const res = await fetch(`${API_BASE_URL}/game`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, date, location, fsq_id, sport, leader, description }),
@@ -85,7 +86,7 @@ export const createGame = async (name: string, date: Date, location: string, fsq
 
 export const deleteGame = async (gameid: string) => {
   try{    
-    const res = await fetch(`http://${API_BASE_URL}:3000/game/${gameid}`, {
+    const res = await fetch(`${API_BASE_URL}/game/${gameid}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -100,7 +101,7 @@ export const deleteGame = async (gameid: string) => {
 
 export const removeGameMember = async (gameid: string, gameMember: string) => {
   try{
-    const res = await fetch(`http://${API_BASE_URL}:3000/game/removeMember`, {
+    const res = await fetch(`${API_BASE_URL}/game/removeMember`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ gameid, gameMember }),
@@ -116,7 +117,7 @@ export const removeGameMember = async (gameid: string, gameMember: string) => {
 
 export const addGameMember = async (gameid: string, gameMember: string) => {
   try{
-    const res = await fetch(`http://${API_BASE_URL}:3000/game/member`, {
+    const res = await fetch(`${API_BASE_URL}/game/member`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ gameid, gameMember }),
@@ -132,7 +133,7 @@ export const addGameMember = async (gameid: string, gameMember: string) => {
 
 export const getGamesLoc = async (fsq_id: string) => {
   try{
-    const res = await fetch(`http://${API_BASE_URL}:3000/game/location/${fsq_id}`, {
+    const res = await fetch(`${API_BASE_URL}/game/location/${fsq_id}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -149,7 +150,7 @@ export const getGamesLoc = async (fsq_id: string) => {
 
 export const getGamesLead = async (id: string) => {
   try{
-    const res = await fetch(`http://${API_BASE_URL}:3000/game/user/lead/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/game/user/lead/${id}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -164,7 +165,7 @@ export const getGamesLead = async (id: string) => {
 
 export const getGamesMember = async (userid: string) => {
   try{
-    const res = await fetch(`http://${API_BASE_URL}:3000/game/user/member/${userid}`, {
+    const res = await fetch(`${API_BASE_URL}/game/user/member/${userid}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -179,7 +180,7 @@ export const getGamesMember = async (userid: string) => {
 
 export const getGameId = async (id: string) => {
   try{
-    const res = await fetch(`http://${API_BASE_URL}:3000/game/id/${id}`, {
+    const res = await fetch(`${API_BASE_URL}/game/id/${id}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -195,7 +196,7 @@ export const getGameId = async (id: string) => {
 // Profile Calls
 export const updateProfile = async (description: string | null, userid: string) => {
   try{
-    const res = await fetch(`http://${API_BASE_URL}:3000/profile/updateProfile`, {
+    const res = await fetch(`${API_BASE_URL}/profile/updateProfile`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ description, userid }),
@@ -212,7 +213,7 @@ export const updateProfile = async (description: string | null, userid: string) 
 // Game Message Calls
 export const getMessagesForGame = async (gameId: string) => {
   try {
-    const res = await fetch(`http://${API_BASE_URL}:3000/message/${gameId}`, {
+    const res = await fetch(`${API_BASE_URL}/message/${gameId}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -229,7 +230,7 @@ export const getMessagesForGame = async (gameId: string) => {
 // Friend Calls
 export const requestFriend = async (userid: string, friendid: string) => {
   try {
-    const res = await fetch(`http://${API_BASE_URL}:3000/friend/request`, {
+    const res = await fetch(`${API_BASE_URL}/friend/request`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userid, friendid }),
@@ -247,7 +248,7 @@ export const requestFriend = async (userid: string, friendid: string) => {
 
 export const acceptFriend = async (userid: string, friendid: string) => {
   try {
-    const res = await fetch(`http://${API_BASE_URL}:3000/friend/accept`, {
+    const res = await fetch(`${API_BASE_URL}/friend/accept`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userid, friendid }),
@@ -263,7 +264,7 @@ export const acceptFriend = async (userid: string, friendid: string) => {
 
 export const removeFriend = async (userid: string, friendid: string) => {
   try {
-    const res = await fetch(`http://${API_BASE_URL}:3000/friend/remove`, {
+    const res = await fetch(`${API_BASE_URL}/friend/remove`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userid, friendid }),
@@ -279,7 +280,7 @@ export const removeFriend = async (userid: string, friendid: string) => {
 
 export const getFriends = async (userid: string) => {
   try {
-    const res = await fetch(`http://${API_BASE_URL}:3000/friend/${userid}`, {
+    const res = await fetch(`${API_BASE_URL}/friend/${userid}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     });
@@ -295,7 +296,7 @@ export const getFriends = async (userid: string) => {
 
 // Upload Calls
 export const getPfp = (userid: string): string => {
-  return `http://${API_BASE_URL}:3000/upload/pfp/${userid}`;
+  return `${API_BASE_URL}/upload/pfp/${userid}`;
 };
 
 export const uploadPfp = async (userid: string, imageUri: string): Promise<string | null> => {
@@ -311,7 +312,7 @@ export const uploadPfp = async (userid: string, imageUri: string): Promise<strin
     // Append the user ID
     formData.append('userid', userid);
 
-    const res = await fetch(`http://${API_BASE_URL}:3000/upload/`, {
+    const res = await fetch(`${API_BASE_URL}/upload/`, {
       method: 'POST',
       body: formData,
     });
@@ -329,7 +330,7 @@ export const uploadPfp = async (userid: string, imageUri: string): Promise<strin
 // notification calls
 export const getNotifications = async (userid: string) => {
   try {
-    const res = await fetch(`http://${API_BASE_URL}:3000/inbox/${userid}`, {
+    const res = await fetch(`${API_BASE_URL}/inbox/${userid}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
     });
@@ -345,7 +346,7 @@ export const getNotifications = async (userid: string) => {
 
 export const deleteNotification = async (notificationid: string) => {
   try{    
-    const res = await fetch(`http://${API_BASE_URL}:3000/inbox/${notificationid}`, {
+    const res = await fetch(`${API_BASE_URL}/inbox/${notificationid}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
     });

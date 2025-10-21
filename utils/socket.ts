@@ -13,7 +13,7 @@ class SocketService {
 
     this.disconnect();
     
-    this.socket = io(`http://${API_BASE_URL}:3000`, {
+    this.socket = io(`${API_BASE_URL}`, {
       auth: {
         userId,
         gameId

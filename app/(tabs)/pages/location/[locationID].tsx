@@ -74,6 +74,7 @@ export default function PlaceScreen() {
           const placeObj = await FetchPlace(Array.isArray(locationID) ? locationID[0] : locationID);
           const locationName = placeObj?.name || 'Unknown Place';
           setPlaceName(locationName);
+          console.log(placeObj)
           setPlaceData(placeObj);
           const games = await getGamesLoc(Array.isArray(locationID) ? locationID[0] : locationID); // Fetch games for the specific location
           setGames(games);

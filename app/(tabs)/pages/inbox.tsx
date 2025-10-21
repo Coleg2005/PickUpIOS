@@ -102,7 +102,18 @@ const Inbox = () => {
                   );
                 } else if (item.type === 'upcoming-game') {
                   notificationContent = (
-                    <Text>Upcoming game: {item.name}</Text>
+                    <View>
+                      <Text style={{ fontSize: 17, color: textColor }}>Upcoming game: {item.object.name} at {item.object.location} at {item.object.date ? new Date(item.object.date).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : 'Unknown'}</Text>
+                      <View style={{ flexDirection: 'row', marginTop: 10 }}>
+                        <View style={{ flex: 1, marginRight: 8 }}>
+                          <Text style={{ backgroundColor: '#27ae60', color: 'white', textAlign: 'center', paddingVertical: 8, borderRadius: 6, fontWeight: 'bold', }}
+                            onPress={() => {rejection(item._id)}}
+                          >
+                            Seen
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
                   );
                 } else {
                   notificationContent = (
