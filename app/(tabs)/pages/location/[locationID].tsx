@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import { Dropdown } from 'react-native-element-dropdown';
-import { FSQ_KEY } from "@/env";
-import { Text, StyleSheet, TouchableOpacity, View, Modal, TextInput, Button, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
+
+const SPORT_ITEMS = [
+  { label: 'Basketball', value: 'basketball' },
+  { label: 'Baseball',   value: 'baseball' },
+  { label: 'Soccer',     value: 'soccer' },
+  { label: 'Tennis',     value: 'tennis' },
+  { label: 'Pickleball', value: 'pickleball' },
+  { label: 'Volleyball', value: 'volleyball' },
+];
+import { Text, StyleSheet, TouchableOpacity, View, Modal, TextInput, Button, Alert, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -12,32 +20,17 @@ import { jwtDecode } from 'jwt-decode';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import Header from '@/components/Header';
 import Card from '@/components/Card';
+import GameStatusBadge from '@/components/GameStatusBadge';
 
 
-import { getGamesLoc, createGame, getUser } from '@/utils/api';
+import { getGamesLoc, createGame, getUser, getPlace } from '@/utils/api';
 import { useSearchStore } from '@/utils/store';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
 async function FetchPlace(fsq_place_id: string) {
 
   try{
-    const url =`https://places-api.foursquare.com/places/${fsq_place_id}`;
-    const options = {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${FSQ_KEY}`,
-        'X-Places-Api-Version': '2025-06-17'
-      }
-    };
-
-    const res = await fetch(url, options);
-
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-
-    const data = await res.json();
-    return data;
+    return await getPlace(fsq_place_id);
 
   } catch(error) {
     console.error(error);
@@ -55,7 +48,8 @@ export default function PlaceScreen() {
   const [gameDescription, setGameDescription] = useState<string>('');
   const [gameSport, setGameSport] = useState<string>(selectedSport || '');
 
-  const [gameLeader, setGameLeader] = useState<string>('')
+  const [gameLeader, setGameLeader] = useState<string>('');
+  const [gameMaxPlayers, setGameMaxPlayers] = useState<string>('');
 
   const { locationID } = useLocalSearchParams();
 
@@ -74,7 +68,6 @@ export default function PlaceScreen() {
           const placeObj = await FetchPlace(Array.isArray(locationID) ? locationID[0] : locationID);
           const locationName = placeObj?.name || 'Unknown Place';
           setPlaceName(locationName);
-          console.log(placeObj)
           setPlaceData(placeObj);
           const games = await getGamesLoc(Array.isArray(locationID) ? locationID[0] : locationID); // Fetch games for the specific location
           setGames(games);
@@ -175,6 +168,27 @@ export default function PlaceScreen() {
                   />
                 </View>
               )}
+              <Dropdown
+                data={SPORT_ITEMS}
+                labelField="label"
+                valueField="value"
+                value={gameSport || null}
+                onChange={item => setGameSport(item.value)}
+                placeholder="Select sport *"
+                style={{ borderWidth: 1, borderRadius: 8, padding: 8, marginBottom: 12, borderColor: cardBorderColor, backgroundColor: cardBackgroundColor }}
+                containerStyle={{ borderRadius: 8, backgroundColor: cardBackgroundColor, borderColor: cardBorderColor, borderWidth: 1 }}
+                itemTextStyle={{ fontSize: 15, color: textColor }}
+                selectedTextStyle={{ fontSize: 15, color: textColor }}
+                placeholderStyle={{ fontSize: 15, color: textColor + '88' }}
+                activeColor={cardBackgroundColor}
+              />
+              <TextInput
+                placeholder="Max players (optional)"
+                value={gameMaxPlayers}
+                onChangeText={setGameMaxPlayers}
+                keyboardType="numeric"
+                style={{ borderWidth: 1, borderRadius: 8, padding: 8, marginBottom: 12, color: textColor, borderColor: cardBorderColor }}
+              />
               <TextInput
                 placeholder="Description (optional)"
                 value={gameDescription}
@@ -186,6 +200,11 @@ export default function PlaceScreen() {
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
                 <Button title="Cancel" color="#888" onPress={() => setModalVisible(false)} />
                 <Button title="Create" onPress={async () => {
+                  if (!gameName || !gameSport) {
+                    Alert.alert('Missing fields', 'Game name and sport are required.');
+                    return;
+                  }
+                  const maxPlayers = gameMaxPlayers ? parseInt(gameMaxPlayers) : null;
                   await createGame(
                     gameName,
                     gameDate,
@@ -193,12 +212,13 @@ export default function PlaceScreen() {
                     Array.isArray(locationID) ? locationID[0] : locationID,
                     gameSport,
                     gameLeader,
-                    gameDescription
+                    gameDescription,
+                    maxPlayers,
                   );
-                  setModalVisible(false);
                   setModalVisible(false);
                   setGameName('');
                   setGameDescription('');
+                  setGameMaxPlayers('');
                   setGameDate(new Date());
                 }} />
               </View>
@@ -277,7 +297,14 @@ export default function PlaceScreen() {
           games.map((game: any) => (
             <TouchableOpacity key={game._id} onPress={() => router.push({ pathname: '/(tabs)/pages/game/[gameid]', params: { gameid: game._id } })}>
               <Card title={game.name}>
-                <Text style={[{ color: textColor }]}>{game.name || 'No Game Name'}</Text>
+                <Text style={{ color: textColor + 'AA', fontSize: 13, marginBottom: 4 }}>
+                  {new Date(game.date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </Text>
+                <GameStatusBadge
+                  memberCount={game.gameMembers?.length ?? 0}
+                  maxPlayers={game.maxPlayers}
+                  gameDate={game.date}
+                />
               </Card>
             </TouchableOpacity>
           ))

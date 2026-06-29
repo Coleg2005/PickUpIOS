@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useThemeColor } from '../hooks/useThemeColor';
+import { Radius, Spacing, FontSize, FontWeight } from '@/constants/Theme';
 
 type CardProps = {
   readonly title?: string;
@@ -14,10 +15,10 @@ export default function Card({ title, children }: CardProps) {
 
   return (
     <View style={[styles.card, { backgroundColor, borderColor }]}>
-      {title && <Text style={[styles.title, { color: textColor }]}>{title}</Text>}
+      {title && <Text style={[styles.title, { color: textColor, fontFamily: 'DMSans_600SemiBold' }]}>{title}</Text>}
       <View style={styles.body}>
         {React.isValidElement(children) && children.type === Text ? (
-          <Text style={{ color: textColor }}>{children}</Text>
+          <Text style={{ color: textColor, fontFamily: 'DMSans_400Regular', fontSize: FontSize.md }}>{children}</Text>
         ) : (
           children
         )}
@@ -28,25 +29,22 @@ export default function Card({ title, children }: CardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 8,
-    marginHorizontal: 4,
-    marginRight: 20,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    marginVertical: Spacing.sm,
     borderWidth: 1,
-    // optional: shadow (looks better in light mode)
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
     shadowRadius: 4,
-    elevation: 4, // Android
+    elevation: 2,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.semibold,
+    marginBottom: Spacing.sm,
   },
   body: {
-    marginTop: 4,
+    marginTop: 2,
   },
 });

@@ -1,20 +1,35 @@
 import * as SecureStore from 'expo-secure-store';
 import { Alert } from 'react-native';
+import { BACKEND_URL } from '@/env';
 
-export const API_BASE_URL = 'https://pickupiosbackend.me';
+export const API_BASE_URL = BACKEND_URL || 'https://pickupiosbackend.me';
+
+const readJsonResponse = async (res: Response) => {
+  const text = await res.text();
+
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: text };
+  }
+};
 
 
 
 // Auth Calls
-export const register = async (username: string, password: string) => {
+export const register = async (username: string, email: string, password: string) => {
   try{
     const res = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, email, password }),
     });
 
-    const data = await res.json();
+    const data = await readJsonResponse(res);
     if (!res.ok) throw new Error(data.error);
 
     await SecureStore.setItemAsync('token', data.token);
@@ -32,7 +47,7 @@ export const login = async (username: string, password: string) => {
       body: JSON.stringify({ username, password }),
     });
 
-    const data = await res.json();
+    const data = await readJsonResponse(res);
     if (!res.ok) throw new Error(data.error);
 
     await SecureStore.setItemAsync('token', data.token);
@@ -52,6 +67,65 @@ export const logout = async () => {
   }
 }
 
+export const searchUsers = async (username: string) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/search?username=${encodeURIComponent(username)}`);
+    const data = await readJsonResponse(res);
+    if (!res.ok) throw new Error(data.error);
+    return data.users as any[];
+  } catch {
+    return [];
+  }
+};
+
+export const deleteAccount = async () => {
+  try {
+    const token = await SecureStore.getItemAsync('token');
+    const res = await fetch(`${API_BASE_URL}/auth/delete-account`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await readJsonResponse(res);
+    if (!res.ok) throw new Error(data.error);
+    await SecureStore.deleteItemAsync('token');
+    return data;
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'An unknown error occurred' };
+  }
+};
+
+export const forgotPassword = async (email: string) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await readJsonResponse(res);
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'An unknown error occurred' };
+  }
+}
+
+export const resetPassword = async (email: string, token: string, newPassword: string) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, token, newPassword }),
+    });
+
+    const data = await readJsonResponse(res);
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'An unknown error occurred' };
+  }
+}
+
 export const getUser = async (id: string) => {
   try{
     const res = await fetch(`${API_BASE_URL}/auth/user/${id}`, {
@@ -59,7 +133,7 @@ export const getUser = async (id: string) => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const data = await res.json();
+    const data = await readJsonResponse(res);
     if (!res.ok) throw new Error(data.error);
     return data;
   } catch(err) {
@@ -68,15 +142,15 @@ export const getUser = async (id: string) => {
 }
 
 // Game Calls
-export const createGame = async (name: string, date: Date, location: string, fsq_id: string, sport: string, leader: string, description: string) => {
+export const createGame = async (name: string, date: Date, location: string, fsq_id: string, sport: string, leader: string, description: string, maxPlayers?: number | null) => {
   try{
     const res = await fetch(`${API_BASE_URL}/game`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, date, location, fsq_id, sport, leader, description }),
+      body: JSON.stringify({ name, date, location, fsq_id, sport, leader, description, maxPlayers: maxPlayers || null }),
     });
 
-    const data = await res.json();
+    const data = await readJsonResponse(res);
     if (!res.ok) throw new Error(data.error);
     return data;
   } catch(err) {
@@ -90,7 +164,7 @@ export const deleteGame = async (gameid: string) => {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
     });
-    const data = await res.json();
+    const data = await readJsonResponse(res);
     
     if (!res.ok) throw new Error(data.error);
     return data;
@@ -107,7 +181,7 @@ export const removeGameMember = async (gameid: string, gameMember: string) => {
       body: JSON.stringify({ gameid, gameMember }),
     });
 
-    const data = await res.json();
+    const data = await readJsonResponse(res);
     if (!res.ok) throw new Error(data.error);
     return data;
   } catch(err) {
@@ -123,13 +197,41 @@ export const addGameMember = async (gameid: string, gameMember: string) => {
       body: JSON.stringify({ gameid, gameMember }),
     });
 
-    const data = await res.json();
+    const data = await readJsonResponse(res);
     if (!res.ok) throw new Error(data.error);
     return data;
   } catch(err) {
     Alert.alert('Add Game Member Failed', err instanceof Error ? err.message : 'An unknown error occurred');
   }
 }
+
+export const getActiveLocations = async (): Promise<string[]> => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/game/active-locations`);
+    const data = await readJsonResponse(res);
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (err) {
+    console.error('getActiveLocations failed:', err);
+    return [];
+  }
+};
+
+export const getGamesByLocations = async (fsq_ids: string[]): Promise<Record<string, any[]>> => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/game/by-locations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fsq_ids }),
+    });
+    const data = await readJsonResponse(res);
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (err) {
+    console.error('getGamesByLocations failed:', err);
+    return {};
+  }
+};
 
 export const getGamesLoc = async (fsq_id: string) => {
   try{
@@ -139,12 +241,51 @@ export const getGamesLoc = async (fsq_id: string) => {
     });
 
 
-    const data = await res.json();
+    const data = await readJsonResponse(res);
     if (!res.ok) throw new Error(data.error);
     return data;
   } catch(err) {
     console.error('getGamesLoc failed:', err);
     Alert.alert('Get Games Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+  }
+}
+
+export const searchPlaces = async ({ query, ll, radius, limit = 50 }: { query: string; ll: string; radius: number; limit?: number }) => {
+  try {
+    const params = new URLSearchParams({
+      query,
+      ll,
+      radius: String(radius),
+      limit: String(limit),
+    });
+
+    const res = await fetch(`${API_BASE_URL}/game/places/search?${params.toString()}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const data = await readJsonResponse(res);
+    if (!res.ok) throw new Error(data.error);
+    return data.results || [];
+  } catch (err) {
+    Alert.alert('Search Places Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+    return [];
+  }
+}
+
+export const getPlace = async (placeId: string) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/game/places/${placeId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const data = await readJsonResponse(res);
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  } catch (err) {
+    Alert.alert('Get Place Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+    return null;
   }
 }
 
@@ -236,8 +377,6 @@ export const requestFriend = async (userid: string, friendid: string) => {
       body: JSON.stringify({ userid, friendid }),
     });
 
-    console.log(res);
-
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     return data;
@@ -289,7 +428,7 @@ export const getFriends = async (userid: string) => {
     if (!res.ok) throw new Error(data.error);
     return data;
   } catch (err) {
-    Alert.alert('Get Messages Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+    Alert.alert('Get Friends Failed', err instanceof Error ? err.message : 'An unknown error occurred');
     return [];
   }
 };

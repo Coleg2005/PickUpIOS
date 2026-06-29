@@ -1,0 +1,37 @@
+done but needs testing:
+account deletion,
+details on game availability,
+map viewing,
+
+
+need:
+account deletion ;)
+reset password ;)
+details on game availability ;),
+map viewing ;),
+push notifications,
+reporting & moderation,
+
+
+maybe:
+skill levels
+reliability score
+friend invites
+recurring games
+
+make it professional:
+weather integration
+check in
+game/court photos
+host ratings
+
+growth features:
+need players feed. ex: soccer game here in 2 hours, need 4
+share game
+waitlists
+
+sendgrid 
+FBGFBUECE6BNYX9Z57VK9FSA
+
+gmail password:
+P1ckitu6sp0r75

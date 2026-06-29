@@ -47,7 +47,6 @@ export default {
       eas: {
         projectId: "4b83280c-61ed-4120-b089-1f6fbe7b70f6"
       },
-      FSQ_KEY: process.env.FSQ_KEY,
       BACKEND_URL: process.env.BACKEND_URL
     },
     runtimeVersion: {

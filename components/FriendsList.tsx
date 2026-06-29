@@ -1,117 +1,106 @@
-// imports 
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Image
-} from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-
 import { getFriends, removeFriend, getPfp } from '@/utils/api';
-
 import { useThemeColor } from '@/hooks/useThemeColor';
+import Avatar from '@/components/Avatar';
+import AppButton from '@/components/AppButton';
+import { Radius, Spacing, FontSize } from '@/constants/Theme';
 
-// component
 type FriendsListProps = {
   userid: string;
   onClose: () => void;
 };
 
 const FriendsList = ({ userid, onClose }: FriendsListProps) => {
-
   const backgroundColor = useThemeColor({}, 'background');
-  const cardBorderColor = useThemeColor({}, 'cardBorder');
+  const surface = useThemeColor({}, 'surface');
+  const cardBorder = useThemeColor({}, 'cardBorder');
   const textColor = useThemeColor({}, 'text');
+  const subtext = useThemeColor({}, 'subtext');
+  const primary = useThemeColor({}, 'primary');
 
   const [friends, setFriends] = useState<any[]>([]);
   const [refresh, setRefresh] = useState(false);
+  const tabBarHeight = useBottomTabBarHeight();
 
   useEffect(() => {
     const fetchFriends = async () => {
       try {
         const res = await getFriends(userid);
         setFriends(res || []);
-      } catch (error) {
-        console.error('Failed to fetch friends:', error);
-      }
+      } catch {}
     };
     fetchFriends();
   }, [userid, refresh]);
 
-
-  // all obvious
-  const bottomSpace = useBottomTabBarHeight();
+  const handleRemove = (friendId: string, username: string) => {
+    Alert.alert('Remove Friend', `Remove ${username}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove', style: 'destructive',
+        onPress: async () => {
+          await removeFriend(userid, friendId);
+          setRefresh(!refresh);
+        },
+      },
+    ]);
+  };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: backgroundColor }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={{ flex: 1, backgroundColor: backgroundColor, borderColor: cardBorderColor }}>
-        <TouchableOpacity
-          style={{ 
+    <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor }}>
+      {/* Header */}
+      <TouchableOpacity
+        onPress={onClose}
+        activeOpacity={1}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: Spacing.lg,
+          paddingTop: Spacing.lg,
+          paddingBottom: Spacing.md,
+          borderBottomWidth: 1,
+          borderBottomColor: cardBorder,
+          backgroundColor: surface,
+        }}
+      >
+        <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: FontSize.xl, color: textColor }}>Friends</Text>
+        <Ionicons name="chevron-down" size={24} color={subtext} />
+      </TouchableOpacity>
+
+      <FlatList
+        data={friends}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={{ padding: Spacing.md, paddingBottom: tabBarHeight + Spacing.md, flexGrow: 1 }}
+        ListEmptyComponent={
+          <View style={{ alignItems: 'center', paddingVertical: 80 }}>
+            <Ionicons name="people-outline" size={48} color={subtext} />
+            <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: FontSize.md, color: subtext, marginTop: Spacing.md }}>No friends yet</Text>
+            <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: FontSize.sm, color: subtext, marginTop: Spacing.xs }}>Search for players on the home screen</Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <View style={{
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: 16,
-            paddingTop: 16,
-            paddingBottom: 8,
-            bottom: bottomSpace, 
-            backgroundColor: backgroundColor, 
-            borderTopWidth: 1, 
-            borderBottomWidth: 1, 
-            borderTopColor: cardBorderColor,
-            borderBottomColor: cardBorderColor
-          }}
-          onPress={onClose}
-          activeOpacity={1}
-        >
-          <Text style={{ fontSize: 18, fontWeight: 'bold', color: textColor }}>Friends List</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ fontSize: 20, color: textColor }}>▼</Text>
+            paddingVertical: Spacing.sm,
+            paddingHorizontal: Spacing.sm,
+            borderRadius: Radius.lg,
+            marginBottom: Spacing.xs,
+          }}>
+            <Avatar username={item.username} imageUri={item.profile?.picture ? getPfp(item._id) : null} size={48} />
+            <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: FontSize.md, color: textColor, flex: 1, marginLeft: Spacing.sm }}>
+              {item.username}
+            </Text>
+            <TouchableOpacity onPress={() => handleRemove(item._id, item.username)}>
+              <Ionicons name="person-remove-outline" size={20} color={subtext} />
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-
-        <FlatList
-          data={friends}
-          keyExtractor={(item) => item._id}
-          renderItem={({ item }) => {
-            const pfpUrl = getPfp(item._id);
-            return (
-              <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderColor: cardBorderColor }}>
-                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#eee', overflow: 'hidden', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
-                  {item.profile?.picture ? (
-                    <Image
-                      source={{ uri: pfpUrl }}
-                      style={{ width: 48, height: 48, borderRadius: 24 }}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Text style={{ textAlign: 'center', lineHeight: 48, color: '#aaa', fontSize: 20 }}>
-                      {item.username?.[0]?.toUpperCase() || '?'}
-                    </Text>
-                  )}
-                </View>
-                <Text style={{ fontSize: 18, flex: 1, color: textColor }}>{item.username}</Text>
-                <TouchableOpacity onPress={() => {removeFriend(userid, item._id); setRefresh(!refresh)}}>
-                  <View style={{ backgroundColor: '#d9534f', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 }}>
-                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Remove</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            );
-          }}
-          style={{ flex: 1, backgroundColor: backgroundColor, minHeight: 120, borderBottomWidth: 1, borderColor: cardBorderColor, bottom: bottomSpace }}
-          contentContainerStyle={{ padding: 8, flexGrow: 1 }}
-          ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 32, color: '#888' }}>No friends yet.</Text>}
-        />
-
-      </View>
-    </KeyboardAvoidingView>
+        )}
+      />
+    </View>
   );
 };
 

@@ -1,111 +1,88 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Text, Alert, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TextInput, Text, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { login } from '../../utils/api';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import AppButton from '@/components/AppButton';
+import { Radius, Spacing, FontSize, FontWeight } from '@/constants/Theme';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const backgroundColor = useThemeColor({}, 'background');
+  const surface = useThemeColor({}, 'surface');
+  const cardBorder = useThemeColor({}, 'cardBorder');
+  const textColor = useThemeColor({}, 'text');
+  const subtext = useThemeColor({}, 'subtext');
+  const primary = useThemeColor({}, 'primary');
+
+  const inputStyle = {
+    height: 50,
+    borderColor: cardBorder,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+    backgroundColor: surface,
+    color: textColor,
+    fontSize: FontSize.md,
+    fontFamily: 'DMSans_400Regular',
+  };
+
   const handleLogin = async () => {
+    setLoading(true);
     try {
       const res = await login(username, password);
       if (!res.ok) {
         Alert.alert('Login Failed', res?.error || 'Invalid username or password');
         return;
       }
-      console.log("Logged in Successfully", res);
-      router.replace('/'); // Go to home
+      router.replace('/');
     } catch (err) {
       Alert.alert('Login Failed', err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setLoading(false);
     }
   };
-
-  const backgroundColor = useThemeColor({}, 'background');
-  const cardBackgroundColor = useThemeColor({}, 'cardBackground');
-  const cardBorderColor = useThemeColor({}, 'cardBorder');
-  const textColor = useThemeColor({}, 'text')
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{
-        flex: 1,
-        backgroundColor: backgroundColor,
-        justifyContent: 'center',
-        paddingHorizontal: 24,
-      }}
+      style={{ flex: 1, backgroundColor, justifyContent: 'center', paddingHorizontal: Spacing.xl }}
     >
-      <View style={{
-        backgroundColor: cardBackgroundColor,
-        padding: 24,
-        borderRadius: 16,
-        borderColor: cardBorderColor,
-        borderWidth: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 5,
-      }}>
-        <Text style={{
-          fontSize: 28,
-          fontWeight: '600',
-          marginBottom: 24,
-          textAlign: 'center',
-          color: textColor,
-        }}>Login</Text>
+      <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 36, color: primary, textAlign: 'center', marginBottom: Spacing.xs }}>
+        PickUp
+      </Text>
+      <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: FontSize.md, color: subtext, textAlign: 'center', marginBottom: Spacing.xl }}>
+        Find your next game
+      </Text>
 
-        <TextInput
-          style={{
-            height: 50,
-            borderColor: cardBorderColor,
-            borderWidth: 1,
-            borderRadius: 12,
-            paddingHorizontal: 16,
-            marginBottom: 16,
-            backgroundColor: cardBackgroundColor,
-            color: textColor,
-          }}
-          placeholder="Username"
-          placeholderTextColor="#aaa"
-          onChangeText={setUsername}
-          value={username}
-          autoCapitalize="none"
-          keyboardType="default"
-        />
-
-        <TextInput
-          style={{
-            height: 50,
-            borderColor: cardBorderColor,
-            borderWidth: 1,
-            borderRadius: 12,
-            paddingHorizontal: 16,
-            marginBottom: 16,
-            backgroundColor: cardBackgroundColor,
-            color: textColor,
-          }}
-          placeholder="Password"
-          placeholderTextColor="#aaa"
-          onChangeText={setPassword}
-          value={password}
-          secureTextEntry
-        />
-
-        <View style={{ marginTop: 8, marginBottom: 16 }}>
-          <Button title="Login" onPress={handleLogin} color="#007AFF" />
-        </View>
-
-        <Text
-          style={{ color: "#007AFF", marginTop: 16 }}
-          onPress={() => router.replace('/(auth)/register')}
-        >
-          Don't have an account yet? Register
+      <View style={{ backgroundColor: surface, padding: Spacing.lg, borderRadius: Radius.lg, borderWidth: 1, borderColor: cardBorder, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 }}>
+        <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: FontSize.xxl, color: textColor, marginBottom: Spacing.lg }}>
+          Welcome back
         </Text>
+
+        <TextInput style={inputStyle} placeholder="Username" placeholderTextColor={subtext} onChangeText={setUsername} value={username} autoCapitalize="none" editable={!loading} />
+        <TextInput style={inputStyle} placeholder="Password" placeholderTextColor={subtext} onChangeText={setPassword} value={password} secureTextEntry editable={!loading} />
+
+        <AppButton title="Log In" onPress={handleLogin} loading={loading} style={{ marginTop: Spacing.xs }} />
+
+        <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')} style={{ marginTop: Spacing.md }}>
+          <Text style={{ fontFamily: 'DMSans_500Medium', color: primary, textAlign: 'center', fontSize: FontSize.sm }}>
+            Forgot password?
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      <TouchableOpacity onPress={() => router.replace('/(auth)/register')} style={{ marginTop: Spacing.lg }}>
+        <Text style={{ fontFamily: 'DMSans_400Regular', color: subtext, textAlign: 'center', fontSize: FontSize.sm }}>
+          Don't have an account?{' '}
+          <Text style={{ fontFamily: 'DMSans_600SemiBold', color: primary }}>Sign up</Text>
+        </Text>
+      </TouchableOpacity>
     </KeyboardAvoidingView>
   );
 }

@@ -1,22 +1,22 @@
-import React, {useState, useEffect} from 'react';
-import { View, Text, Button, Alert, TextInput, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Alert, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
 import Header from '@/components/Header';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import Avatar from '@/components/Avatar';
+import AppButton from '@/components/AppButton';
 import FriendsList from '@/components/FriendsList';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { Radius, Spacing, FontSize, FontWeight } from '@/constants/Theme';
 
 import { logout } from '@/utils/auth';
-import { getUser, updateProfile, uploadPfp, getPfp, getFriends } from '@/utils/api';
+import { getUser, updateProfile, uploadPfp, getPfp, getFriends, deleteAccount } from '@/utils/api';
 
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-
 import { jwtDecode } from 'jwt-decode';
-
 
 export default function Profile() {
   const router = useRouter();
@@ -27,6 +27,7 @@ export default function Profile() {
   const [friendsVisible, setFriendsVisible] = useState(false);
   const [refresh, setRefresh] = useState(false);
   const [friends, setFriends] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -37,13 +38,13 @@ export default function Profile() {
           if (decoded?._id) {
             const res = await getUser(decoded._id);
             setUser(res.user);
-            // Fetch profile picture URL from backend
-            const url = getPfp(decoded._id);
-            setPfpUrl(url);
+            setPfpUrl(getPfp(decoded._id));
           }
         }
       } catch (error) {
         console.log('Failed to load user:', error);
+      } finally {
+        setLoading(false);
       }
     };
     loadUser();
@@ -57,28 +58,24 @@ export default function Profile() {
         try {
           const res = await getFriends(user._id);
           if (isActive) setFriends(res || []);
-        } catch (error) {
-          console.error('Failed to fetch friends:', error);
-        }
+        } catch {}
       };
       fetchFriends();
       return () => { isActive = false; };
     }, [user, refresh])
   );
 
-
   const handleLogout = async () => {
     await logout();
-    Alert.alert('Logged out');
     router.replace('/(auth)/login');
   };
 
-  const handleEdit = () => setEditing(true);
   const handleSave = () => {
     updateProfile(description, user._id);
     setEditing(false);
     if (user) setUser({ ...user, profile: { ...user.profile, description } });
   };
+
   const handleCancel = () => {
     setEditing(false);
     setDescription(user?.profile?.description || '');
@@ -89,119 +86,115 @@ export default function Profile() {
       mediaTypes: 'images',
       allowsEditing: true,
       aspect: [1, 1],
-      quality: .7,
+      quality: 0.7,
     });
-
     if (!result.canceled) {
       const uri = result.assets[0].uri;
-      // Optimistically update local state
-      setUser((prev: any) => prev ? { ...prev, profile: { ...prev.profile, picture: uri } } : prev);
-      // Upload and then fetch the new profile picture URL
       await uploadPfp(user._id, uri);
       setPfpUrl(getPfp(user._id) + '?t=' + Date.now());
     }
     setRefresh(!refresh);
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and all your data. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const res = await deleteAccount();
+            if (!res.ok) { Alert.alert('Error', res.error || 'Failed to delete account'); return; }
+            router.replace('/(auth)/login');
+          },
+        },
+      ]
+    );
+  };
+
   const textColor = useThemeColor({}, 'text');
-  const cardBackgroundColor = useThemeColor({}, 'cardBackground');
-  const borderColor = useThemeColor({}, 'cardBorder');
-  const tint = useThemeColor({}, 'tint')
+  const subtext = useThemeColor({}, 'subtext');
+  const backgroundColor = useThemeColor({}, 'background');
+  const surface = useThemeColor({}, 'surface');
+  const cardBorder = useThemeColor({}, 'cardBorder');
+  const primary = useThemeColor({}, 'primary');
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={primary} />
+      </View>
+    );
+  }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor }}>
       <Header />
-      <ParallaxScrollView
-        headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      >
-        <View style={{ padding: 16, alignItems: 'center' }}>
+      <ScrollView contentContainerStyle={{ padding: Spacing.xl, gap: Spacing.lg }}>
 
-          {/* Profile Picture */}
-          <View style={{ marginBottom: 16 }}>
-            <TouchableOpacity activeOpacity={0.7} onPress={addProfilePic}>
-              <View
-                style={{
-                  width: 100,
-                  height: 100,
-                  borderRadius: 50,
-                  overflow: 'hidden',
-                  marginBottom: 8,
-                }}
-              >
-                {pfpUrl ? (
-                  <Image
-                    source={{ uri: pfpUrl }}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: 50,
-                      borderWidth: 2,
-                      borderColor: cardBackgroundColor,
-                    }}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <Text
-                    style={{
-                      textAlign: 'center',
-                      lineHeight: 100,
-                      color: '#aaa',
-                      fontSize: 40,
-                    }}
-                  >
-                    {user?.username?.[0]?.toUpperCase() || '?'}
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
+        {/* Avatar + username */}
+        <View style={{ alignItems: 'center', gap: Spacing.sm }}>
+          <TouchableOpacity onPress={addProfilePic} activeOpacity={0.8}>
+            <Avatar username={user?.username} imageUri={pfpUrl} size={96} />
+            <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: primary, borderRadius: Radius.full, padding: 6, borderWidth: 2, borderColor: backgroundColor }}>
+              <Ionicons name="camera" size={12} color="#fff" />
+            </View>
+          </TouchableOpacity>
 
-          {/* Username */}
-          <Text style={{ color: textColor, fontSize: 24, fontWeight: 'bold', marginBottom: 4 }}>{user?.username || 'Username'}</Text>
+          <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: FontSize.xxl, color: textColor }}>
+            {user?.username || 'Username'}
+          </Text>
 
-          {/* Friends Button */}
-          <View style={{ marginBottom: 12 }}>
-            <TouchableOpacity onPress={() => {setFriendsVisible(true)}} activeOpacity={0.7}>
-              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-                <IconSymbol size={28} name="person" color={tint} />
-                <Text style={{color: tint, fontSize: 22, marginTop: 2, textAlign: 'center'}}>{friends ? friends.length : 0}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-          
-
-          {/* Description */}
-          <View style={{ width: '100%', marginBottom: 16 }}>
-            <Text style={{ color: textColor, fontSize: 18, marginBottom: 4 }}>Description:</Text>
-            {editing ? (
-              <>
-                <TextInput
-                  value={description}
-                  onChangeText={setDescription}
-                  style={{ borderWidth: 1, borderColor: borderColor, borderRadius: 8, padding: 8, color: textColor, minHeight: 60, marginBottom: 8 }}
-                  multiline
-                />
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <Button title="Save" onPress={handleSave} />
-                  <Button title="Cancel" color="#888" onPress={handleCancel} />
-                </View>
-              </>
-            ) : (
-              <>
-                <Text style={{ color: textColor, fontSize: 16, minHeight: 60, marginBottom: 8 }}>{user?.profile?.description || 'No description set.'}</Text>
-                <Button title="Edit" onPress={handleEdit} />
-              </>
-            )}
-          </View>
-          <Button title="Logout" onPress={handleLogout} color="#d9534f" />
+          <TouchableOpacity onPress={() => setFriendsVisible(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+            <Ionicons name="people-outline" size={18} color={subtext} />
+            <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: FontSize.sm, color: subtext }}>
+              {friends.length} {friends.length === 1 ? 'friend' : 'friends'}
+            </Text>
+          </TouchableOpacity>
         </View>
-      </ParallaxScrollView>
-      {}
+
+        {/* Description */}
+        <View style={{ backgroundColor: surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: cardBorder, padding: Spacing.md }}>
+          <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: FontSize.sm, color: subtext, marginBottom: Spacing.sm, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            About
+          </Text>
+          {editing ? (
+            <>
+              <TextInput
+                value={description}
+                onChangeText={setDescription}
+                style={{ borderWidth: 1, borderColor: cardBorder, borderRadius: Radius.md, padding: Spacing.sm, color: textColor, minHeight: 80, marginBottom: Spacing.sm, fontFamily: 'DMSans_400Regular', fontSize: FontSize.md }}
+                multiline
+                autoFocus
+              />
+              <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                <AppButton title="Save" onPress={handleSave} style={{ flex: 1 }} />
+                <AppButton title="Cancel" onPress={handleCancel} variant="secondary" style={{ flex: 1 }} />
+              </View>
+            </>
+          ) : (
+            <TouchableOpacity onPress={() => { setDescription(user?.profile?.description || ''); setEditing(true); }}>
+              <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: FontSize.md, color: user?.profile?.description ? textColor : subtext, minHeight: 40 }}>
+                {user?.profile?.description || 'Tap to add a description...'}
+              </Text>
+              <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: FontSize.sm, color: primary, marginTop: Spacing.sm }}>Edit</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Actions */}
+        <View style={{ gap: Spacing.sm }}>
+          <AppButton title="Log Out" onPress={handleLogout} variant="secondary" />
+          <AppButton title="Delete Account" onPress={handleDeleteAccount} variant="danger" />
+        </View>
+
+      </ScrollView>
+
       {user && friendsVisible && (
-        <FriendsList
-          userid={user._id}
-          onClose={(() => {setFriendsVisible(false)})}
-        />
+        <FriendsList userid={user._id} onClose={() => setFriendsVisible(false)} />
       )}
     </View>
   );

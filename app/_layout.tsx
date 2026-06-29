@@ -1,31 +1,34 @@
-// app/_layout.js
-import { Stack, router } from 'expo-router';
-import { useFonts } from 'expo-font';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
- 
+import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
 
 export default function RootLayout() {
+  const segments = useSegments();
+  const router = useRouter();
 
-  useEffect(() => {
-  const checkLogin = async () => {
-      const token = await SecureStore.getItemAsync('token');
-      if (!token) router.replace('/(auth)/login' as any);
-    };
-    checkLogin();
-  }, []);
-
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
   });
 
-  if (!loaded) {
-    return null;
-  }
+  useEffect(() => {
+    const checkLogin = async () => {
+      const token = await SecureStore.getItemAsync('token');
+      const isAuthRoute = segments[0] === '(auth)';
+      if (!token && !isAuthRoute) router.replace('/(auth)/login' as any);
+    };
+    checkLogin();
+  }, [segments, router]);
+
+  const colorScheme = useColorScheme();
+
+  if (!loaded) return null;
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

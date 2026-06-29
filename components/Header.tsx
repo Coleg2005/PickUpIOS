@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSettings } from '@/app/(tabs)/_layout';
 import { Colors } from '@/constants/Colors';
+import { FontSize, FontWeight, Spacing } from '@/constants/Theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { jwtDecode } from 'jwt-decode';
 import * as SecureStore from 'expo-secure-store';
@@ -11,13 +12,12 @@ import { getUser, getNotifications } from '@/utils/api';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-
 const Header = () => {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() ?? 'light';
+  const colors = Colors[colorScheme];
   const { showSettings } = useSettings();
   const [username, setUsername] = useState<string | null>(null);
   const [hasNotif, setHasNotif] = useState<boolean>(false);
-
   const router = useRouter();
 
   useFocusEffect(
@@ -35,61 +35,35 @@ const Header = () => {
               if (isActive) setHasNotif(notifs.length > 0);
             }
           }
-        } catch (error) {
-          console.log('Failed to load user:', error);
-        }
+        } catch {}
       };
       loadUser();
-      return () => {
-        isActive = false;
-      };
+      return () => { isActive = false; };
     }, [])
   );
 
   return (
-    <SafeAreaView
-      edges={['top']} // Ensures padding is applied only to the top
-      style={[
-        styles.container,
-        { backgroundColor: Colors[colorScheme ?? 'light'].background },
-      ]}
-    >
-      <Text style={{ color: Colors[colorScheme ?? 'light'].text, fontWeight: 'bold', fontSize: 20 }}>
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.surface, borderBottomColor: colors.cardBorder }]}>
+      <Text style={[styles.logo, { color: colors.primary, fontFamily: 'DMSans_700Bold' }]}>
         PickUp
       </Text>
 
-      <View style={{ left: 0, right: 0, alignItems: 'center', pointerEvents: 'none' }}>
-        <Text style={{ color: Colors[colorScheme ?? 'light'].text, fontWeight: 'bold', fontSize: 20 }}>
-          {username ? `${username}` : ''}
-        </Text>
-      </View>
+      <Text style={[styles.username, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>
+        {username ?? ''}
+      </Text>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <TouchableOpacity onPress={() => router.replace('/(tabs)/pages/inbox')}>
-          <Ionicons name="file-tray-outline" size={28} color={Colors[colorScheme ?? 'light'].text} />
+      <View style={styles.actions}>
+        <TouchableOpacity onPress={() => router.replace('/(tabs)/pages/inbox')} style={styles.iconBtn}>
+          <Ionicons name="notifications-outline" size={24} color={colors.icon} />
           {hasNotif && (
-            <View
-              style={{
-                position: 'absolute',
-                top: 2,
-                right: 2,
-                width: 12,
-                height: 12,
-                borderRadius: 6,
-                backgroundColor: 'red',
-                borderWidth: 2,
-                borderColor: Colors[colorScheme ?? 'light'].background,
-                zIndex: 1,
-              }}
-            />
+            <View style={[styles.badge, { borderColor: colors.surface, backgroundColor: colors.primary }]} />
           )}
         </TouchableOpacity>
-        <View style={{ width: 16 }} />
-        <TouchableOpacity onPress={showSettings}>
-          <Ionicons name="settings-outline" size={28} color={Colors[colorScheme ?? 'light'].text} />
+        <TouchableOpacity onPress={showSettings} style={styles.iconBtn}>
+          <Ionicons name="settings-outline" size={24} color={colors.icon} />
         </TouchableOpacity>
       </View>
-    </SafeAreaView>    
+    </SafeAreaView>
   );
 };
 
@@ -98,14 +72,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#fff',
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.sm,
     borderBottomWidth: 1,
-    borderColor: '#ccc',
   },
-  link: {
-    fontSize: 16,
-    color: '#007AFF',
+  logo: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    width: 80,
+  },
+  username: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    pointerEvents: 'none',
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    width: 80,
+    justifyContent: 'flex-end',
+  },
+  iconBtn: {
+    padding: Spacing.xs,
+  },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    borderWidth: 1.5,
   },
 });
 
