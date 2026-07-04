@@ -4,7 +4,10 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { jwtDecode } from 'jwt-decode';
 import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
+import { registerForPushNotificationsAsync } from '@/utils/notifications';
+import { registerPushToken } from '@/utils/api';
 
 export default function RootLayout() {
   const segments = useSegments();
@@ -25,6 +28,26 @@ export default function RootLayout() {
     };
     checkLogin();
   }, [segments, router]);
+
+  useEffect(() => {
+    const setupPushNotifications = async () => {
+      const token = await SecureStore.getItemAsync('token');
+      if (!token) return;
+
+      const decoded: any = jwtDecode(token);
+      if (!decoded?._id) return;
+
+      const pushToken = await registerForPushNotificationsAsync();
+      if (!pushToken) return;
+
+      const storedPushToken = await SecureStore.getItemAsync('pushToken');
+      if (storedPushToken === pushToken) return;
+
+      await registerPushToken(pushToken);
+      await SecureStore.setItemAsync('pushToken', pushToken);
+    };
+    setupPushNotifications();
+  }, [segments]);
 
   const colorScheme = useColorScheme();
 

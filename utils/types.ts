@@ -1,7 +1,6 @@
 export interface User {
   _id: string;
   username: string;
-  password: string;
   profile?: {
     description?: string;
     picture?: string;

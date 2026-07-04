@@ -37,7 +37,13 @@ export default {
         }
       ],
       "expo-web-browser",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/images/icon.png"
+        }
+      ]
     ],
     experiments: {
       typedRoutes: true

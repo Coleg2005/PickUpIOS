@@ -1,19 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View, ScrollView, Alert } from 'react-native';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import * as SecureStore from 'expo-secure-store';
 import { jwtDecode } from 'jwt-decode';
+import { Ionicons } from '@expo/vector-icons';
 
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import Header from '@/components/Header';
+import Avatar from '@/components/Avatar';
+import AppButton from '@/components/AppButton';
 import GameChat from '@/components/GameChat';
+import GameStatusBadge from '@/components/GameStatusBadge';
+import ReportModal from '@/components/ReportModal';
+import InviteFriendsModal from '@/components/InviteFriendsModal';
 
-import { getGameId, addGameMember, deleteGame, removeGameMember } from '@/utils/api';
+import { getGameId, addGameMember, deleteGame, removeGameMember, getPfp, formatRecurrence, GameRecurrence } from '@/utils/api';
 import { User } from '@/utils/types';
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { Radius, Spacing, FontSize } from '@/constants/Theme';
 
 export default function GameScreen() {
   const router = useRouter();
@@ -25,29 +31,32 @@ export default function GameScreen() {
   const [user, setUser] = useState<any>(null);
   const [members, setMembers] = useState<User[]>([]);
   const [gameName, setGameName] = useState<string>('');
-  const [leader, setLeader] = useState<User| null>(null);
+  const [leader, setLeader] = useState<User | null>(null);
   const [date, setDate] = useState<Date>(new Date());
   const [location, setLocation] = useState<string>('');
   const [sport, setSport] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [maxPlayers, setMaxPlayers] = useState<number | null>(null);
+  const [recurrence, setRecurrence] = useState<GameRecurrence>('none');
 
   const [refreshFlag, setRefreshFlag] = useState(0);
-
+  const [reportVisible, setReportVisible] = useState(false);
+  const [inviteVisible, setInviteVisible] = useState(false);
 
   useEffect(() => {
-      const loadUser = async () => {
-        try {
-          const token = await SecureStore.getItemAsync('token');
-          if (token) {
-            const decoded: any = jwtDecode(token);
-            setUser(decoded);
-          }
-        } catch (error) {
-          console.log('Failed to load user:', error);
+    const loadUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync('token');
+        if (token) {
+          const decoded: any = jwtDecode(token);
+          setUser(decoded);
         }
-      };
-      loadUser();
-    }, []);
+      } catch (error) {
+        console.log('Failed to load user:', error);
+      }
+    };
+    loadUser();
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -63,6 +72,8 @@ export default function GameScreen() {
             setLocation(fetchedGame.location);
             setSport(fetchedGame.sport);
             setDescription(fetchedGame.description);
+            setMaxPlayers(fetchedGame.maxPlayers ?? null);
+            setRecurrence(fetchedGame.recurrence || 'none');
           }
         } catch (error) {
           console.log('Failed to load game:', error);
@@ -72,41 +83,131 @@ export default function GameScreen() {
     }, [refreshFlag, gameid])
   );
 
-  const textColor = useThemeColor({}, 'text')
-  const cardBackgroundColor = useThemeColor({}, 'cardBackground')
-  const cardBorderColor = useThemeColor({}, 'cardBorder')
-  const tintColor = useThemeColor({}, 'tint')
+  const textColor = useThemeColor({}, 'text');
+  const subtext = useThemeColor({}, 'subtext');
+  const backgroundColor = useThemeColor({}, 'background');
+  const surface = useThemeColor({}, 'surface');
+  const cardBorder = useThemeColor({}, 'cardBorder');
+  const primary = useThemeColor({}, 'primary');
 
-  // Extract button text logic into a variable
-  let buttonText = 'Join Game';
-  if (leader && user && user._id === leader._id) {
-    buttonText = 'Delete Game';
-  } else if (user && members.some((member: any) => member._id === user._id)) {
-    buttonText = 'Leave Game';
-  }
+  const isLeader = !!(user && leader && user._id === leader._id);
+  const isMember = !!(user && members.some((member: any) => member._id === user._id));
+
+  const handleMainAction = async () => {
+    const gameId = Array.isArray(gameid) ? gameid[0] : gameid;
+    if (!user?._id) return;
+
+    if (isLeader) {
+      Alert.alert('Delete Game', 'This will delete the game for all members.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteGame(gameId);
+            router.back();
+          },
+        },
+      ]);
+      return;
+    }
+    if (isMember) {
+      await removeGameMember(gameId, user._id);
+    } else {
+      await addGameMember(gameId, user._id);
+    }
+    setRefreshFlag((prev) => (prev === 1 ? 0 : 1));
+  };
+
+  const detailRows = [
+    { icon: 'person-outline' as const, label: 'Leader', value: leader?.username ?? 'Unknown' },
+    { icon: 'calendar-outline' as const, label: 'When', value: date.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) },
+    { icon: 'location-outline' as const, label: 'Where', value: location },
+    { icon: 'basketball-outline' as const, label: 'Sport', value: sport, capitalize: true },
+    ...(formatRecurrence(recurrence, date)
+      ? [{ icon: 'repeat' as const, label: 'Schedule', value: formatRecurrence(recurrence, date)! }]
+      : []),
+  ];
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor }}>
       <Header />
-      <ParallaxScrollView
-        headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      >
-        <View style={{ margin: 16, padding: 20, backgroundColor: cardBackgroundColor, borderRadius: 16, borderColor: cardBorderColor, borderWidth: 1, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8 }}>
-          <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 8, color: textColor }}>{gameName}</Text>
-          <View style={{ marginBottom: 12 }}>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: textColor }}>Leader: <Text style={{ fontWeight: '400' }}>{leader?.username ?? 'Unknown'}</Text></Text>
-            <Text style={{ fontSize: 16, color: textColor }}>On <Text style={{ fontWeight: '400' }}>{date ? date.toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown'}</Text></Text>
-            <Text style={{ fontSize: 16, color: textColor }}>At <Text style={{ fontWeight: '400' }}>{location}</Text></Text>
-            <Text style={{ fontSize: 16, color: textColor }}>Playing <Text style={{ fontWeight: '400' }}>{sport}</Text></Text>
+      <ScrollView contentContainerStyle={{ padding: Spacing.xl, gap: Spacing.lg, paddingBottom: bottomSpace + 120 }}>
+
+        {/* Title + actions */}
+        <View style={{ gap: Spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm }}>
+            <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: FontSize.xxl, color: textColor, flex: 1 }}>
+              {gameName}
+            </Text>
+            {isMember && (
+              <TouchableOpacity onPress={() => setInviteVisible(true)} style={{ padding: Spacing.xs }} hitSlop={8}>
+                <Ionicons name="person-add-outline" size={22} color={subtext} />
+              </TouchableOpacity>
+            )}
+            {user && leader && user._id !== leader._id && (
+              <TouchableOpacity onPress={() => setReportVisible(true)} style={{ padding: Spacing.xs }} hitSlop={8}>
+                <Ionicons name="flag-outline" size={22} color={subtext} />
+              </TouchableOpacity>
+            )}
           </View>
-          <Text style={{ fontSize: 16, color: textColor, marginBottom: 8 }}>Description:</Text>
-          <Text style={{ fontSize: 16, color: tintColor, marginBottom: 16 }}>{description || 'No description'}</Text>
+          <GameStatusBadge memberCount={members.length} maxPlayers={maxPlayers} gameDate={date} />
         </View>
 
-        <View style={{ marginHorizontal: 16, marginTop: 8, padding: 20, borderRadius: 16, borderColor: cardBorderColor, borderWidth: 1, backgroundColor: cardBackgroundColor }}>
-          <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 8, color: textColor, }}>Members</Text>
+        {/* Details */}
+        <View style={{ backgroundColor: surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: cardBorder, padding: Spacing.md, gap: Spacing.md }}>
+          <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: FontSize.sm, color: subtext, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Details
+          </Text>
+          {detailRows.map((row) => (
+            <View key={row.label} style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+              <Ionicons name={row.icon} size={18} color={primary} />
+              <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: FontSize.sm, color: subtext, width: 72 }}>
+                {row.label}
+              </Text>
+              <Text
+                style={{
+                  fontFamily: 'DMSans_500Medium',
+                  fontSize: FontSize.md,
+                  color: textColor,
+                  flex: 1,
+                  textTransform: row.capitalize ? 'capitalize' : 'none',
+                }}
+              >
+                {row.value}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Description */}
+        <View style={{ backgroundColor: surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: cardBorder, padding: Spacing.md }}>
+          <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: FontSize.sm, color: subtext, marginBottom: Spacing.sm, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            About
+          </Text>
+          <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: FontSize.md, color: description ? textColor : subtext }}>
+            {description || 'No description yet.'}
+          </Text>
+        </View>
+
+        {/* Join / Leave / Delete */}
+        {user && (
+          isLeader ? (
+            <AppButton title="Delete Game" onPress={handleMainAction} variant="danger" />
+          ) : isMember ? (
+            <AppButton title="Leave Game" onPress={handleMainAction} variant="secondary" />
+          ) : (
+            <AppButton title="Join Game" onPress={handleMainAction} />
+          )
+        )}
+
+        {/* Members */}
+        <View style={{ backgroundColor: surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: cardBorder, padding: Spacing.md }}>
+          <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: FontSize.sm, color: subtext, marginBottom: Spacing.sm, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Members ({members.length}{maxPlayers ? `/${maxPlayers}` : ''})
+          </Text>
           {members && members.length > 0 ? (
-            <View style={{ gap: 12 }}>
+            <View>
               {members.map((member: any) => (
                 <TouchableOpacity
                   key={member._id}
@@ -117,56 +218,43 @@ export default function GameScreen() {
                       router.push({ pathname: '/(tabs)/pages/user/[userid]', params: { userid: member._id } });
                     }
                   }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm }}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, elevation: 1 }}>
-                    <Text style={{ fontSize: 16, fontWeight: '600', color: textColor }}>{member.username}</Text>
-                    {/* You can add more member info here if needed */}
-                  </View>
+                  <Avatar username={member.username} imageUri={member.profile?.picture ? getPfp(member._id) : null} size={40} />
+                  <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: FontSize.md, color: textColor, flex: 1 }}>
+                    {member.username}
+                  </Text>
+                  {leader && member._id === leader._id && (
+                    <View style={{ backgroundColor: primary + '22', borderRadius: Radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 3 }}>
+                      <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: FontSize.xs, color: primary }}>LEADER</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
           ) : (
-            <Text style={{ color: textColor }}>No members found.</Text>
+            <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: FontSize.md, color: subtext }}>No members yet.</Text>
           )}
         </View>
-      </ParallaxScrollView>
-      <TouchableOpacity
-        style={{
-          position: 'absolute',
-          bottom: bottomSpace + 65,
-          right: 25,
-          backgroundColor: '#007AFF',
-          borderRadius: 32,
-          paddingVertical: 16,
-          paddingHorizontal: 24,
-        }}
-        onPress={async () => {
-          const gameId = Array.isArray(gameid) ? gameid[0] : gameid;
-          if (!user?._id) {
-            console.log('User is not loaded');
-            return;
-          }
-          if (leader && user._id === leader._id) {
-            await deleteGame(gameId);
-            router.back()
-            return;
-          }
-          const isMember = members.some((member: any) => member._id === user._id);
-          if (isMember) {
-            await removeGameMember(gameId, user._id);
-            setRefreshFlag((prev) => prev === 1 ? 0 : 1);
-            return;
-          }
-          await addGameMember(gameId, user._id);
-          setRefreshFlag((prev) => prev === 1 ? 0 : 1);
-        }}
-      >
-        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>
-          {buttonText}
-        </Text>
-      </TouchableOpacity>
-      {}
-      {user && members.some((member: any) => member._id === user._id) && (
+
+      </ScrollView>
+
+      <ReportModal
+        visible={reportVisible}
+        onClose={() => setReportVisible(false)}
+        contentType="game"
+        contentId={Array.isArray(gameid) ? gameid[0] : (gameid as string)}
+      />
+      {user && (
+        <InviteFriendsModal
+          visible={inviteVisible}
+          onClose={() => setInviteVisible(false)}
+          gameId={Array.isArray(gameid) ? gameid[0] : (gameid as string)}
+          userId={user._id}
+          memberIds={members.map((m: any) => m._id)}
+        />
+      )}
+      {user && isMember && (
         <GameChat
           gameId={Array.isArray(gameid) ? gameid[0] : gameid}
           userId={user._id}
@@ -176,16 +264,3 @@ export default function GameScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,               // Make View take full screen height
-    justifyContent: 'center', // Center vertically
-    alignItems: 'center',     // Center horizontally
-    backgroundColor: '#000',  // White background so text shows clearly
-  },
-  text: {
-    fontSize: 20,
-    color: '#fff',          // Black text color
-  },
-});

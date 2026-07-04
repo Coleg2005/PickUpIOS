@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, TextInput, Text, Alert, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { login } from '../../utils/api';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -49,9 +49,12 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ flex: 1, backgroundColor, justifyContent: 'center', paddingHorizontal: Spacing.xl }}
+    <ScrollView
+      style={{ flex: 1, backgroundColor }}
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: Spacing.xl }}
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
       <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 36, color: primary, textAlign: 'center', marginBottom: Spacing.xs }}>
         PickUp
@@ -65,8 +68,8 @@ export default function LoginScreen() {
           Welcome back
         </Text>
 
-        <TextInput style={inputStyle} placeholder="Username" placeholderTextColor={subtext} onChangeText={setUsername} value={username} autoCapitalize="none" editable={!loading} />
-        <TextInput style={inputStyle} placeholder="Password" placeholderTextColor={subtext} onChangeText={setPassword} value={password} secureTextEntry editable={!loading} />
+        <TextInput style={inputStyle} placeholder="Username" placeholderTextColor={subtext} onChangeText={setUsername} value={username} autoCapitalize="none" autoCorrect={false} textContentType="username" autoComplete="username" editable={!loading} />
+        <TextInput style={inputStyle} placeholder="Password" placeholderTextColor={subtext} onChangeText={setPassword} value={password} secureTextEntry textContentType="password" autoComplete="password" editable={!loading} />
 
         <AppButton title="Log In" onPress={handleLogin} loading={loading} style={{ marginTop: Spacing.xs }} />
 
@@ -79,10 +82,10 @@ export default function LoginScreen() {
 
       <TouchableOpacity onPress={() => router.replace('/(auth)/register')} style={{ marginTop: Spacing.lg }}>
         <Text style={{ fontFamily: 'DMSans_400Regular', color: subtext, textAlign: 'center', fontSize: FontSize.sm }}>
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Text style={{ fontFamily: 'DMSans_600SemiBold', color: primary }}>Sign up</Text>
         </Text>
       </TouchableOpacity>
-    </KeyboardAvoidingView>
+    </ScrollView>
   );
 }

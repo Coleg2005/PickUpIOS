@@ -8,13 +8,15 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Keyboard
+  Keyboard,
+  Alert
 } from 'react-native';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 import SocketService from '@/utils/socket';
+import ReportModal from '@/components/ReportModal';
 
-import { getMessagesForGame } from '@/utils/api';
+import { getMessagesForGame, getBlockedUsers, blockUser } from '@/utils/api';
 
 import { useThemeColor } from '@/hooks/useThemeColor';
 
@@ -45,6 +47,9 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
   const cardBorderColor = useThemeColor({}, 'cardBorder');
   const cardTextColor = useThemeColor({}, 'cardText');
   const textColor = useThemeColor({}, 'text');
+  const primary = useThemeColor({}, 'primary');
+  const surface = useThemeColor({}, 'surface');
+  const subtext = useThemeColor({}, 'subtext');
 
 
   // all obvious
@@ -55,7 +60,10 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [reportedMessage, setReportedMessage] = useState<Message | null>(null);
   const flatListRef = useRef<FlatList>(null);
+  // Ref so the socket message handler always sees the current blocked list
+  const blockedIdsRef = useRef<string[]>([]);
 
   useEffect(() => {
     const show = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -70,7 +78,7 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
 
   // socket
   useEffect(() => {
-    const socket = SocketService.connect(gameId, userId);
+    const socket = SocketService.connect(gameId);
 
     socket.on('connect', () => {
       setIsConnected(true);
@@ -80,11 +88,16 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
       setIsConnected(false);
     });
 
-    // Load initial messages
+    // Load initial messages and the blocked list (server already filters
+    // history; the list is used to filter live messages client-side)
     loadMessages();
+    getBlockedUsers().then((blocked: any[]) => {
+      blockedIdsRef.current = (blocked || []).map((b: any) => b._id);
+    });
 
     // Listen for new messages
     SocketService.onMessage((newMessage: Message) => {
+      if (blockedIdsRef.current.includes(newMessage.userId)) return;
       setMessages(prev => [...prev, newMessage]);
       scrollToBottom();
     });
@@ -147,24 +160,34 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
 
   const sendMessage = () => {
     if (inputText.trim() && isConnected) {
-      const newMsg: Message = {
-        _id: `local-${Date.now()}`,
-        gameId,
-        userId,
-        username,
-        message: inputText.trim(),
-        timestamp: new Date(),
-        messageType: 'text',
-      };
-      setMessages(prev => [...prev, newMsg]);
-      setTimeout(scrollToBottom, 100);
-      SocketService.sendMessage(gameId, userId, username, inputText.trim());
+      // The server broadcasts the message back to the room (including us), which appends it
+      SocketService.sendMessage(gameId, inputText.trim());
       setInputText('');
+      setTimeout(scrollToBottom, 100);
     }
   };
 
   const scrollToBottom = () => {
     flatListRef.current?.scrollToEnd({ animated: true });
+  };
+
+  // Long-press on someone else's message: report it or block the sender
+  const handleMessageActions = (message: Message) => {
+    Alert.alert(message.username, message.message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Report Message', onPress: () => setReportedMessage(message) },
+      {
+        text: 'Block User',
+        style: 'destructive',
+        onPress: async () => {
+          const res = await blockUser(message.userId);
+          if (res) {
+            blockedIdsRef.current = [...blockedIdsRef.current, message.userId];
+            setMessages(prev => prev.filter(m => m.userId !== message.userId));
+          }
+        },
+      },
+    ]);
   };
 
   // Preprocess messages to inject date system messages
@@ -225,16 +248,20 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
     }
 
     // else is a message sent by a person
-    
+
     return (
-      <View style={{
+      <TouchableOpacity
+        activeOpacity={0.8}
+        disabled={isOwnMessage}
+        onLongPress={() => handleMessageActions(item)}
+        style={{
         marginVertical: 0,
         padding: 12,
         borderRadius: 8,
         maxWidth: '90%',
-        backgroundColor: isOwnMessage ? '#007AFF' : cardBackgroundColor,
+        backgroundColor: isOwnMessage ? primary : cardBackgroundColor,
         borderWidth: 1,
-        borderColor: isOwnMessage ? '#007AFF' : cardBorderColor,
+        borderColor: isOwnMessage ? primary : cardBorderColor,
         alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
       }}>
         <Text style={{
@@ -253,12 +280,12 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
           marginTop: 4,
           textAlign: 'right',
         }}>
-          {new Date(item.timestamp).toLocaleTimeString([], { 
-            hour: '2-digit', 
-            minute: '2-digit' 
+          {new Date(item.timestamp).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
           })}
         </Text>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -278,12 +305,12 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
         activeOpacity={0.7}
       >
         <View style={{
-          backgroundColor: '#f5f5f5',
+          backgroundColor: surface,
           borderRadius: 16,
           paddingHorizontal: 16,
           paddingVertical: 6,
           borderWidth: 1,
-          borderColor: '#ccc',
+          borderColor: cardBorderColor,
           flexDirection: 'row',
           alignItems: 'center',
           shadowColor: '#000',
@@ -291,8 +318,8 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
           shadowRadius: 4,
           bottom: bottomSpace
         }}>
-          <Text style={{ fontSize: 20, color: '#222' }}>▲</Text>
-          <Text style={{ marginLeft: 8, color: '#222', fontWeight: 'bold' }}>Show Chat</Text>
+          <Text style={{ fontSize: 20, color: subtext }}>▲</Text>
+          <Text style={{ marginLeft: 8, color: textColor, fontFamily: 'DMSans_600SemiBold' }}>Show Chat</Text>
         </View>
       </TouchableOpacity>
     );
@@ -322,7 +349,7 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
           onPress={() => setIsVisible(false)}
           activeOpacity={1}
         >
-          <Text style={{ fontSize: 18, fontWeight: 'bold', color: textColor }}>Game Chat</Text>
+          <Text style={{ fontSize: 18, fontFamily: 'DMSans_700Bold', color: textColor }}>Game Chat</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{
               width: 12,
@@ -381,7 +408,7 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
           />
           <TouchableOpacity
             style={{
-              backgroundColor: '#007AFF',
+              backgroundColor: primary,
               paddingHorizontal: 20,
               paddingVertical: 10,
               borderRadius: 20,
@@ -390,10 +417,18 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
             onPress={sendMessage}
             disabled={!inputText.trim() || !isConnected}
           >
-            <Text style={{ color: '#ECEDEE', fontWeight: 'bold' }}>Send</Text>
+            <Text style={{ color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>Send</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      <ReportModal
+        visible={!!reportedMessage}
+        onClose={() => setReportedMessage(null)}
+        contentType="message"
+        contentId={reportedMessage?._id}
+        targetName={reportedMessage?.username}
+      />
     </KeyboardAvoidingView>
   );
 };

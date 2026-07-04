@@ -105,6 +105,12 @@ export default function TabLayout() {
               href: null,
             }}
           />
+          <Tabs.Screen
+            name="pages/moderation"
+            options={{
+              href: null,
+            }}
+          />
         </Tabs>
         
         {/* Settings component rendered at layout level */}

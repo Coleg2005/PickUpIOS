@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Alert, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, Alert, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Share } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -7,11 +7,12 @@ import Header from '@/components/Header';
 import Avatar from '@/components/Avatar';
 import AppButton from '@/components/AppButton';
 import FriendsList from '@/components/FriendsList';
+import BlockedUsersList from '@/components/BlockedUsersList';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Radius, Spacing, FontSize, FontWeight } from '@/constants/Theme';
 
 import { logout } from '@/utils/auth';
-import { getUser, updateProfile, uploadPfp, getPfp, getFriends, deleteAccount } from '@/utils/api';
+import { getUser, updateProfile, uploadPfp, getPfp, getFriends, deleteAccount, getFriendInviteUrl } from '@/utils/api';
 
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -25,6 +26,7 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [description, setDescription] = useState('');
   const [friendsVisible, setFriendsVisible] = useState(false);
+  const [blockedVisible, setBlockedVisible] = useState(false);
   const [refresh, setRefresh] = useState(false);
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ export default function Profile() {
   };
 
   const handleSave = () => {
-    updateProfile(description, user._id);
+    updateProfile(description);
     setEditing(false);
     if (user) setUser({ ...user, profile: { ...user.profile, description } });
   };
@@ -90,10 +92,20 @@ export default function Profile() {
     });
     if (!result.canceled) {
       const uri = result.assets[0].uri;
-      await uploadPfp(user._id, uri);
+      await uploadPfp(uri);
       setPfpUrl(getPfp(user._id) + '?t=' + Date.now());
     }
     setRefresh(!refresh);
+  };
+
+  // Opens the share sheet (Messages, etc.) with a link to this user's profile
+  const handleInviteFriend = async () => {
+    if (!user?._id) return;
+    try {
+      await Share.share({
+        message: `Add me on PickUp so we can play together! ${getFriendInviteUrl(user._id)}`,
+      });
+    } catch {}
   };
 
   const handleDeleteAccount = () => {
@@ -187,6 +199,11 @@ export default function Profile() {
 
         {/* Actions */}
         <View style={{ gap: Spacing.sm }}>
+          {(user?.role === 'moderator' || user?.role === 'admin') && (
+            <AppButton title="Moderation" onPress={() => router.push('/(tabs)/pages/moderation' as any)} />
+          )}
+          <AppButton title="Invite a Friend" onPress={handleInviteFriend} />
+          <AppButton title="Blocked Users" onPress={() => setBlockedVisible(true)} variant="secondary" />
           <AppButton title="Log Out" onPress={handleLogout} variant="secondary" />
           <AppButton title="Delete Account" onPress={handleDeleteAccount} variant="danger" />
         </View>
@@ -195,6 +212,10 @@ export default function Profile() {
 
       {user && friendsVisible && (
         <FriendsList userid={user._id} onClose={() => setFriendsVisible(false)} />
+      )}
+
+      {blockedVisible && (
+        <BlockedUsersList onClose={() => setBlockedVisible(false)} />
       )}
     </View>
   );

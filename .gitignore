@@ -34,6 +34,9 @@ yarn-error.*
 .env*.local
 .env
 
+# todo
+todo.txt
+
 # typescript
 *.tsbuildinfo
 

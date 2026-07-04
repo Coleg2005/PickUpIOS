@@ -2,22 +2,18 @@ done but needs testing:
 account deletion,
 details on game availability,
 map viewing,
-
-
-need:
-account deletion ;)
-reset password ;)
-details on game availability ;),
-map viewing ;),
-push notifications,
+reset password,
+push notifications (friend requests, accepts, game chat messages),
 reporting & moderation,
+friend invites,
+recurring games,
 
 
 maybe:
 skill levels
 reliability score
-friend invites
-recurring games
+
+
 
 make it professional:
 weather integration
@@ -30,8 +26,12 @@ need players feed. ex: soccer game here in 2 hours, need 4
 share game
 waitlists
 
-sendgrid 
-FBGFBUECE6BNYX9Z57VK9FSA
 
-gmail password:
-P1ckitu6sp0r75
+ideas for whenever:
+
+make disclaimer with place accuracy and park availability,
+tell how far place is, check if picture is available.
+
+All Time:
+
+Deploy

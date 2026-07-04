@@ -1,12 +1,13 @@
 // services/SocketService.ts
 import io, { Socket } from 'socket.io-client';
+import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from './api';
 
 class SocketService {
   private socket: typeof Socket | null = null;
   private gameId: string | null = null;
 
-  connect(gameId: string, userId: string) {
+  connect(gameId: string) {
     if (this.socket?.connected && this.gameId === gameId) {
       return this.socket;
     }
@@ -14,9 +15,9 @@ class SocketService {
     this.disconnect();
     
     this.socket = io(`${API_BASE_URL}`, {
-      auth: {
-        userId,
-        gameId
+      // The server authenticates the handshake with the JWT and derives the user from it
+      auth: (cb: (data: object) => void) => {
+        SecureStore.getItemAsync('token').then((token) => cb({ token }));
       }
     });
 
@@ -37,16 +38,10 @@ class SocketService {
     }
   }
 
-  sendMessage(gameId: string, userId: string, username: string, message: string) {
+  // Sender identity and timestamp are set server-side from the authenticated socket
+  sendMessage(gameId: string, message: string) {
     if (this.socket) {
-      this.socket.emit('send-message', {
-        gameId,
-        userId,
-        username,
-        message,
-        timestamp: new Date(),
-        messageType: 'text'
-      });
+      this.socket.emit('send-message', { gameId, message });
     }
   }
 

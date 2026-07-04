@@ -204,7 +204,7 @@ export default function HomeScreen() {
           ) : (
             <View style={{ alignItems: 'center', paddingVertical: Spacing.xl }}>
               <Ionicons name="people-outline" size={40} color={subtext} />
-              <Text style={{ color: subtext, fontFamily: 'DMSans_400Regular', fontSize: FontSize.sm, marginTop: Spacing.sm }}>You haven't joined any games</Text>
+              <Text style={{ color: subtext, fontFamily: 'DMSans_400Regular', fontSize: FontSize.sm, marginTop: Spacing.sm }}>You haven&apos;t joined any games</Text>
             </View>
           )}
         </Collapsible>

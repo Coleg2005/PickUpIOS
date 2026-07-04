@@ -97,7 +97,7 @@ export default function ParksScreen() {
           if (!isActive) return;
 
           const sportPlaces = results || [];
-          const sportIds = new Set(sportPlaces.map((p: any) => p.fsq_place_id));
+          const sportIds = new Set<string>(sportPlaces.map((p: any) => p.fsq_place_id));
 
           // Fetch games for sport-specific places
           const grouped: Record<string, any[]> = sportIds.size > 0

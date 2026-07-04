@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, Alert, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
+import { View, TextInput, Text, Alert, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { register } from '../../utils/api';
 import { useThemeColor } from '@/hooks/useThemeColor';
@@ -50,9 +50,12 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ flex: 1, backgroundColor, justifyContent: 'center', paddingHorizontal: Spacing.xl }}
+    <ScrollView
+      style={{ flex: 1, backgroundColor }}
+      contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: Spacing.xl }}
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
       <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 36, color: primary, textAlign: 'center', marginBottom: Spacing.xs }}>
         PickUp
@@ -66,9 +69,9 @@ export default function RegisterScreen() {
           Create account
         </Text>
 
-        <TextInput style={inputStyle} placeholder="Username" placeholderTextColor={subtext} onChangeText={setUsername} value={username} autoCapitalize="none" editable={!loading} />
-        <TextInput style={inputStyle} placeholder="Email" placeholderTextColor={subtext} onChangeText={setEmail} value={email} autoCapitalize="none" keyboardType="email-address" editable={!loading} />
-        <TextInput style={inputStyle} placeholder="Password" placeholderTextColor={subtext} onChangeText={setPassword} value={password} secureTextEntry editable={!loading} />
+        <TextInput style={inputStyle} placeholder="Username" placeholderTextColor={subtext} onChangeText={setUsername} value={username} autoCapitalize="none" autoCorrect={false} textContentType="username" autoComplete="username-new" editable={!loading} />
+        <TextInput style={inputStyle} placeholder="Email" placeholderTextColor={subtext} onChangeText={setEmail} value={email} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" textContentType="emailAddress" autoComplete="email" editable={!loading} />
+        <TextInput style={inputStyle} placeholder="Password" placeholderTextColor={subtext} onChangeText={setPassword} value={password} secureTextEntry textContentType="newPassword" autoComplete="password-new" editable={!loading} />
 
         <AppButton title="Create Account" onPress={handleRegister} loading={loading} style={{ marginTop: Spacing.xs }} />
       </View>
@@ -79,6 +82,6 @@ export default function RegisterScreen() {
           <Text style={{ fontFamily: 'DMSans_600SemiBold', color: primary }}>Log in</Text>
         </Text>
       </TouchableOpacity>
-    </KeyboardAvoidingView>
+    </ScrollView>
   );
 }

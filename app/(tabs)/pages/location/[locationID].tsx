@@ -1,5 +1,23 @@
 import React, { useState } from 'react';
+import { Text, TouchableOpacity, View, ScrollView, Modal, TextInput, Alert, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform, Button } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
+
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import * as SecureStore from 'expo-secure-store';
+import { jwtDecode } from 'jwt-decode';
+
+import Header from '@/components/Header';
+import AppButton from '@/components/AppButton';
+import GameStatusBadge from '@/components/GameStatusBadge';
+
+import { getGamesLoc, createGame, getUser, getPlace, formatRecurrence, GameRecurrence } from '@/utils/api';
+import { useSearchStore } from '@/utils/store';
+import { useThemeColor } from '@/hooks/useThemeColor';
+import { Radius, Spacing, FontSize } from '@/constants/Theme';
 
 const SPORT_ITEMS = [
   { label: 'Basketball', value: 'basketball' },
@@ -9,37 +27,19 @@ const SPORT_ITEMS = [
   { label: 'Pickleball', value: 'pickleball' },
   { label: 'Volleyball', value: 'volleyball' },
 ];
-import { Text, StyleSheet, TouchableOpacity, View, Modal, TextInput, Button, Alert, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
-import * as SecureStore from 'expo-secure-store';
-import { jwtDecode } from 'jwt-decode';
-
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import Header from '@/components/Header';
-import Card from '@/components/Card';
-import GameStatusBadge from '@/components/GameStatusBadge';
-
-
-import { getGamesLoc, createGame, getUser, getPlace } from '@/utils/api';
-import { useSearchStore } from '@/utils/store';
-import { useThemeColor } from '@/hooks/useThemeColor';
 
 async function FetchPlace(fsq_place_id: string) {
-
-  try{
+  try {
     return await getPlace(fsq_place_id);
-
-  } catch(error) {
+  } catch (error) {
     console.error(error);
   }
 }
 
 export default function PlaceScreen() {
   const router = useRouter();
-  const { selectedSport } = useSearchStore()
+  const { selectedSport } = useSearchStore();
+  const tabBarHeight = useBottomTabBarHeight();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [gameName, setGameName] = useState<string>('');
@@ -50,6 +50,7 @@ export default function PlaceScreen() {
 
   const [gameLeader, setGameLeader] = useState<string>('');
   const [gameMaxPlayers, setGameMaxPlayers] = useState<string>('');
+  const [gameRecurrence, setGameRecurrence] = useState<GameRecurrence>('none');
 
   const { locationID } = useLocalSearchParams();
 
@@ -57,9 +58,6 @@ export default function PlaceScreen() {
   const [placeData, setPlaceData] = useState<any>(null);
 
   const [games, setGames] = useState<[] | null>(null);
-
-  
-  
 
   useFocusEffect(
     React.useCallback(() => {
@@ -99,64 +97,160 @@ export default function PlaceScreen() {
   };
 
   const textColor = useThemeColor({}, 'text');
-  const cardBorderColor = useThemeColor({}, 'cardBorder')
-  const cardBackgroundColor = useThemeColor({}, 'cardBackground')
+  const subtext = useThemeColor({}, 'subtext');
   const backgroundColor = useThemeColor({}, 'background');
+  const surface = useThemeColor({}, 'surface');
+  const cardBorder = useThemeColor({}, 'cardBorder');
+  const primary = useThemeColor({}, 'primary');
+
+  const inputStyle = {
+    borderWidth: 1,
+    borderColor: cardBorder,
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    color: textColor,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: FontSize.md,
+  } as const;
+
+  const dropdownProps = {
+    labelField: 'label' as const,
+    valueField: 'value' as const,
+    style: { borderWidth: 1, borderRadius: Radius.md, padding: Spacing.sm, marginBottom: Spacing.sm, borderColor: cardBorder, backgroundColor: surface },
+    containerStyle: { borderRadius: Radius.md, backgroundColor: surface, borderColor: cardBorder, borderWidth: 1 },
+    itemTextStyle: { fontSize: FontSize.md, color: textColor, fontFamily: 'DMSans_400Regular' },
+    selectedTextStyle: { fontSize: FontSize.md, color: textColor, fontFamily: 'DMSans_400Regular' },
+    placeholderStyle: { fontSize: FontSize.md, color: subtext, fontFamily: 'DMSans_400Regular' },
+    activeColor: surface,
+  };
+
+  const handleCreate = async () => {
+    if (!gameName || !gameSport) {
+      Alert.alert('Missing fields', 'Game name and sport are required.');
+      return;
+    }
+    const maxPlayers = gameMaxPlayers ? parseInt(gameMaxPlayers) : null;
+    await createGame(
+      gameName,
+      gameDate,
+      placeName,
+      Array.isArray(locationID) ? locationID[0] : locationID,
+      gameSport,
+      gameLeader,
+      gameDescription,
+      maxPlayers,
+      gameRecurrence,
+    );
+    setModalVisible(false);
+    setGameName('');
+    setGameDescription('');
+    setGameMaxPlayers('');
+    setGameDate(new Date());
+    setGameRecurrence('none');
+  };
 
   return (
-    <View style={{ flex: 1, backgroundColor: backgroundColor }}>
+    <View style={{ flex: 1, backgroundColor }}>
+
+      {/* Create game modal */}
       <Modal
         visible={modalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <View style={{ backgroundColor: cardBackgroundColor, borderRadius: 16, padding: 24, width: '85%', borderColor: cardBorderColor, borderWidth: 2 }}>
-              <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 16, color: textColor }}>Create Game</Text>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: Spacing.xl }}
+          >
+            <View style={{ backgroundColor: surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: cardBorder, padding: Spacing.lg }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.md }}>
+                <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: FontSize.xl, color: textColor }}>Create Game</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={8}>
+                  <Ionicons name="close" size={24} color={subtext} />
+                </TouchableOpacity>
+              </View>
+
               <TextInput
-                placeholder="Game Name"
+                placeholder="Game name"
+                placeholderTextColor={subtext}
                 value={gameName}
                 onChangeText={setGameName}
-                style={{ borderWidth: 1, borderRadius: 8, padding: 8, marginBottom: 12, color: textColor, borderColor: cardBorderColor }}
+                style={inputStyle}
               />
+
               <TouchableOpacity
                 onPress={() => setShowDatePicker(true)}
                 activeOpacity={0.7}
-                hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-                style={{ marginBottom: 12 }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderWidth: 1, borderColor: cardBorder, borderRadius: Radius.md, padding: Spacing.sm, marginBottom: Spacing.sm }}
               >
-                <View pointerEvents="none">
-                  <TextInput
-                    placeholder="Date (YYYY-MM-DD HH:mm)"
-                    value={gameDate ? gameDate.toLocaleString(undefined, {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true,
-                    }) : ''}
-                    editable={false}
-                    style={{ borderWidth: 1, borderRadius: 8, padding: 8, color: textColor, borderColor: cardBorderColor }}
-                  />
-                </View>
+                <Ionicons name="calendar-outline" size={18} color={primary} />
+                <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: FontSize.md, color: textColor }}>
+                  {gameDate.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </Text>
               </TouchableOpacity>
+
+              <Dropdown
+                {...dropdownProps}
+                data={SPORT_ITEMS}
+                value={gameSport || null}
+                onChange={item => setGameSport(item.value)}
+                placeholder="Select sport *"
+              />
+
+              <Dropdown
+                {...dropdownProps}
+                data={[
+                  { label: 'Does not repeat', value: 'none' },
+                  { label: 'Every day', value: 'daily' },
+                  { label: 'Every other day', value: 'every-other-day' },
+                  { label: `Every ${gameDate.toLocaleDateString('en-US', { weekday: 'long' })}`, value: 'weekly' },
+                ]}
+                value={gameRecurrence}
+                onChange={item => setGameRecurrence(item.value as GameRecurrence)}
+                placeholder="Repeats"
+              />
+
+              <TextInput
+                placeholder="Max players (optional)"
+                placeholderTextColor={subtext}
+                value={gameMaxPlayers}
+                onChangeText={setGameMaxPlayers}
+                keyboardType="numeric"
+                style={inputStyle}
+              />
+
+              <TextInput
+                placeholder="Description (optional)"
+                placeholderTextColor={subtext}
+                value={gameDescription}
+                onChangeText={setGameDescription}
+                multiline
+                numberOfLines={3}
+                style={[inputStyle, { minHeight: 60 }]}
+              />
+
+              <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm }}>
+                <AppButton title="Cancel" onPress={() => setModalVisible(false)} variant="secondary" style={{ flex: 1 }} />
+                <AppButton title="Create" onPress={handleCreate} style={{ flex: 1 }} />
+              </View>
+
               {showDatePicker && Platform.OS === 'ios' && (
                 <View style={{
                   position: 'absolute',
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  backgroundColor: cardBackgroundColor,
-                  borderTopLeftRadius: 16,
-                  borderTopRightRadius: 16,
-                  borderColor: cardBackgroundColor,
-                  padding: 16,
+                  backgroundColor: surface,
+                  borderRadius: Radius.lg,
+                  borderWidth: 1,
+                  borderColor: cardBorder,
+                  padding: Spacing.md,
                   zIndex: 1000,
                 }}>
-                  <Button title="Done" onPress={() => setShowDatePicker(false)} />
+                  <Button title="Done" color={primary} onPress={() => setShowDatePicker(false)} />
                   <DateTimePicker
                     value={gameDate}
                     mode="datetime"
@@ -164,184 +258,105 @@ export default function PlaceScreen() {
                     onChange={(_, selectedDate) => {
                       if (selectedDate) setGameDate(selectedDate);
                     }}
-                    style={{ backgroundColor: cardBackgroundColor }}
+                    style={{ backgroundColor: surface }}
                   />
                 </View>
               )}
-              <Dropdown
-                data={SPORT_ITEMS}
-                labelField="label"
-                valueField="value"
-                value={gameSport || null}
-                onChange={item => setGameSport(item.value)}
-                placeholder="Select sport *"
-                style={{ borderWidth: 1, borderRadius: 8, padding: 8, marginBottom: 12, borderColor: cardBorderColor, backgroundColor: cardBackgroundColor }}
-                containerStyle={{ borderRadius: 8, backgroundColor: cardBackgroundColor, borderColor: cardBorderColor, borderWidth: 1 }}
-                itemTextStyle={{ fontSize: 15, color: textColor }}
-                selectedTextStyle={{ fontSize: 15, color: textColor }}
-                placeholderStyle={{ fontSize: 15, color: textColor + '88' }}
-                activeColor={cardBackgroundColor}
-              />
-              <TextInput
-                placeholder="Max players (optional)"
-                value={gameMaxPlayers}
-                onChangeText={setGameMaxPlayers}
-                keyboardType="numeric"
-                style={{ borderWidth: 1, borderRadius: 8, padding: 8, marginBottom: 12, color: textColor, borderColor: cardBorderColor }}
-              />
-              <TextInput
-                placeholder="Description (optional)"
-                value={gameDescription}
-                onChangeText={setGameDescription}
-                multiline
-                numberOfLines={3}
-                style={{ borderWidth: 1, borderRadius: 8, padding: 8, marginBottom: 12, color: textColor, borderColor: cardBorderColor }}
-              />
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
-                <Button title="Cancel" color="#888" onPress={() => setModalVisible(false)} />
-                <Button title="Create" onPress={async () => {
-                  if (!gameName || !gameSport) {
-                    Alert.alert('Missing fields', 'Game name and sport are required.');
-                    return;
-                  }
-                  const maxPlayers = gameMaxPlayers ? parseInt(gameMaxPlayers) : null;
-                  await createGame(
-                    gameName,
-                    gameDate,
-                    placeName,
-                    Array.isArray(locationID) ? locationID[0] : locationID,
-                    gameSport,
-                    gameLeader,
-                    gameDescription,
-                    maxPlayers,
-                  );
-                  setModalVisible(false);
-                  setGameName('');
-                  setGameDescription('');
-                  setGameMaxPlayers('');
-                  setGameDate(new Date());
-                }} />
-              </View>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
       </Modal>
 
       <Header />
-      <ParallaxScrollView
-        headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      >
-        <View style={[{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          padding: 20,
-          marginHorizontal: 16,
-          marginTop: 8,
-          marginBottom: 20,
-          borderRadius: 16,
-          borderWidth: 1,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3, 
-          backgroundColor: cardBackgroundColor, 
-          borderColor: cardBorderColor,
-        }]}>
-          <View style={[{
-            flex: 1,
-            paddingRight: 12,
-          }]}>
-            <Text style={[{ 
-              color: textColor,
-              fontSize: 24,
-              fontWeight: 'bold',
-              marginBottom: 6,
-              lineHeight: 30,
-            }]}>
-              {placeName}
-            </Text>
-            {!!getAddress() && (
-              <Text style={[{ 
-                color: textColor + 'CC',
-                fontSize: 14,
-                lineHeight: 20,
-              }]}>
+      <ScrollView contentContainerStyle={{ padding: Spacing.xl, gap: Spacing.lg, paddingBottom: tabBarHeight + 100 }}>
+
+        {/* Place info */}
+        <View style={{ backgroundColor: surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: cardBorder, padding: Spacing.md, gap: Spacing.xs }}>
+          <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: FontSize.xxl, color: textColor }}>
+            {placeName}
+          </Text>
+          {!!getAddress() && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+              <Ionicons name="location-outline" size={14} color={subtext} />
+              <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: FontSize.sm, color: subtext, flex: 1 }}>
                 {getAddress()}
               </Text>
-            )}
-
-            {selectedSport && (
-              <View style={{
-                backgroundColor: '#007AFF',
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 20,
-                alignSelf: 'flex-start',
-              }}>
-                <Text style={{
-                  color: '#fff',
-                  fontSize: 12,
-                  fontWeight: '600',
-                  textTransform: 'uppercase',
-                }}>
-                  {selectedSport}
-                </Text>
-              </View>
-            )}
-          </View>
+            </View>
+          )}
+          {selectedSport && (
+            <View style={{ backgroundColor: primary + '22', paddingHorizontal: Spacing.sm, paddingVertical: 3, borderRadius: Radius.full, alignSelf: 'flex-start', marginTop: Spacing.xs }}>
+              <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: FontSize.xs, color: primary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {selectedSport}
+              </Text>
+            </View>
+          )}
         </View>
+
+        {/* Games */}
+        <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: FontSize.sm, color: subtext, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          Games
+        </Text>
 
         {games && games.length > 0 ? (
           games.map((game: any) => (
-            <TouchableOpacity key={game._id} onPress={() => router.push({ pathname: '/(tabs)/pages/game/[gameid]', params: { gameid: game._id } })}>
-              <Card title={game.name}>
-                <Text style={{ color: textColor + 'AA', fontSize: 13, marginBottom: 4 }}>
-                  {new Date(game.date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            <TouchableOpacity
+              key={game._id}
+              activeOpacity={0.75}
+              onPress={() => router.push({ pathname: '/(tabs)/pages/game/[gameid]', params: { gameid: game._id } })}
+              style={{ backgroundColor: surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: cardBorder, padding: Spacing.md, gap: Spacing.xs }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm }}>
+                <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: FontSize.lg, color: textColor, flex: 1 }}>
+                  {game.name}
                 </Text>
-                <GameStatusBadge
-                  memberCount={game.gameMembers?.length ?? 0}
-                  maxPlayers={game.maxPlayers}
-                  gameDate={game.date}
-                />
-              </Card>
+                <Ionicons name="chevron-forward" size={18} color={subtext} />
+              </View>
+              <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: FontSize.sm, color: subtext }}>
+                {new Date(game.date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {formatRecurrence(game.recurrence, game.date) ? ` · ${formatRecurrence(game.recurrence, game.date)}` : ''}
+              </Text>
+              <GameStatusBadge
+                memberCount={game.gameMembers?.length ?? 0}
+                maxPlayers={game.maxPlayers}
+                gameDate={game.date}
+              />
             </TouchableOpacity>
           ))
         ) : (
-          <Text style={[{ color: textColor }]}>No games found.</Text>
+          <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+            <Ionicons name="calendar-outline" size={48} color={subtext} />
+            <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: FontSize.md, color: subtext, marginTop: Spacing.md }}>No games yet</Text>
+            <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: FontSize.sm, color: subtext, marginTop: Spacing.xs }}>Be the first to create one here</Text>
+          </View>
         )}
 
-      </ParallaxScrollView>
+      </ScrollView>
+
+      {/* Floating create button */}
       <TouchableOpacity
+        activeOpacity={0.85}
         style={{
           position: 'absolute',
-          bottom: 100,
-          right: 24,
-          backgroundColor: '#007AFF',
-          borderRadius: 32,
-          paddingVertical: 16,
-          paddingHorizontal: 24,
+          bottom: tabBarHeight + Spacing.lg,
+          right: Spacing.xl,
+          backgroundColor: primary,
+          borderRadius: Radius.full,
+          paddingVertical: Spacing.md,
+          paddingHorizontal: Spacing.lg,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: Spacing.xs,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 6,
           elevation: 4,
-          zIndex: 100,
         }}
         onPress={() => setModalVisible(true)}
       >
-        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>+ Create Game</Text>
+        <Ionicons name="add" size={20} color="#fff" />
+        <Text style={{ color: '#fff', fontFamily: 'DMSans_600SemiBold', fontSize: FontSize.md }}>Create Game</Text>
       </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,               // Make View take full screen height
-    justifyContent: 'center', // Center vertically
-    alignItems: 'center',     // Center horizontally
-    backgroundColor: '#000',  // White background so text shows clearly
-  },
-  text: {
-    fontSize: 20,
-    color: '#fff',          // Black text color
-  },
-});
