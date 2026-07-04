@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "development",
+        "BACKEND_URL": "http://192.168.1.10:3000"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "APP_ENV": "production",
+        "BACKEND_URL": "https://pickupiosbackend.me"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "APP_ENV": "production",
+        "BACKEND_URL": "https://pickupiosbackend.me"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

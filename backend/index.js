@@ -1,3 +1,4 @@
+import './config/env.js'; // MUST be first: loads + validates env before anything else
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
