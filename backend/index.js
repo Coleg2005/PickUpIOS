@@ -26,6 +26,7 @@ import messageRoutes from './routes/messageRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import inboxRoutes from './routes/inboxRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import legalRoutes from './routes/legalRoutes.js';
 import { startRecurrenceJob } from './utils/recurrence.js';
 
 import mongoose from 'mongoose';
@@ -86,6 +87,7 @@ app.use('/game', gameRoutes);
 app.use('/profile', profileRoutes);
 app.use('/message', messageRoutes);
 app.use('/report', reportRoutes);
+app.use('/', legalRoutes); // GET /privacy — public privacy policy (required by app stores)
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
