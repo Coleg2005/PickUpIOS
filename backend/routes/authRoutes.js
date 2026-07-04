@@ -14,6 +14,19 @@ const router = express.Router();
 
 const TOKEN_EXPIRY = '7d';
 const MIN_PASSWORD_LENGTH = 8;
+// Letters, digits, dot, underscore, hyphen; 3-20 chars. Only enforced on NEW
+// registrations — some legacy accounts (e.g. 1-char names) predate this rule
+// and must still be able to log in.
+const USERNAME_RE = /^[a-zA-Z0-9._-]{3,20}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Escape regex metacharacters so user input can't inject patterns (ReDoS)
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// Usernames are matched case-insensitively (exact string, any casing) so
+// "Cole" can log in as "cole" and nobody can register a look-alike name.
+const usernameFilter = (username) => ({
+  username: { $regex: `^${escapeRegex(username)}$`, $options: 'i' },
+});
 
 // Email service setup (configure with your email provider)
 const transporter = nodemailer.createTransport({
@@ -46,17 +59,28 @@ const DEEP_LINK_BASE = IS_DEV
 
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    let { username, email, password } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({ ok: false, error: 'username, email, and password are required' });
+    }
+
+    username = String(username).trim();
+    email = String(email).trim().toLowerCase();
+
+    if (!USERNAME_RE.test(username)) {
+      return res.status(400).json({ ok: false, error: 'Username must be 3-20 characters using only letters, numbers, dots, underscores, or hyphens' });
+    }
+
+    if (!EMAIL_RE.test(email)) {
+      return res.status(400).json({ ok: false, error: 'Please enter a valid email address' });
     }
 
     if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
       return res.status(400).json({ ok: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
     }
 
-    if (await User.findOne({ username })) {
+    if (await User.findOne(usernameFilter(username))) {
       return res.status(400).json({ ok: false, error: 'Username already taken' });
     }
 
@@ -84,7 +108,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'username and password are required' });
     }
 
-    const user = await User.findOne({ username });
+    const user = await User.findOne(usernameFilter(String(username).trim()));
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ ok: false, error: 'Invalid credentials' });
@@ -148,11 +172,12 @@ router.get('/search', requireAuth, async (req, res) => {
 
 // Forgot Password - Generate reset token and send email
 router.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
+  let { email } = req.body;
 
   if (!email) {
     return res.status(400).json({ ok: false, error: 'Email is required' });
   }
+  email = String(email).trim().toLowerCase();
 
   try {
     const user = await User.findOne({ email });
@@ -284,11 +309,12 @@ router.get('/invite-redirect', async (req, res) => {
 
 // Reset Password - Validate token and update password
 router.post('/reset-password', async (req, res) => {
-  const { email, token, newPassword } = req.body;
+  let { email, token, newPassword } = req.body;
 
   if (!email || !token || !newPassword) {
     return res.status(400).json({ ok: false, error: 'Email, token, and new password are required' });
   }
+  email = String(email).trim().toLowerCase();
 
   if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
     return res.status(400).json({ ok: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });

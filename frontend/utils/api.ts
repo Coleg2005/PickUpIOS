@@ -1,8 +1,36 @@
 import * as SecureStore from 'expo-secure-store';
 import { Alert } from 'react-native';
+import { router } from 'expo-router';
 import { BACKEND_URL } from '@/env';
 
 export const API_BASE_URL = BACKEND_URL || 'https://pickupiosbackend.me';
+
+// Paths where a 401 means "wrong credentials", not "your session expired" —
+// these must never trigger the auto-logout below.
+const CREDENTIAL_PATHS = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password'];
+
+const SESSION_EXPIRED_MESSAGE = 'SESSION_EXPIRED';
+
+// JWTs expire after 7 days. When an authenticated request comes back 401,
+// clear the stale credentials and send the user to login — otherwise every
+// screen just fails forever with "Invalid or expired token" alerts.
+// The flag collapses parallel failing requests into a single alert+redirect.
+let handlingExpiredSession = false;
+const handleExpiredSession = async () => {
+  if (handlingExpiredSession) return;
+  handlingExpiredSession = true;
+  try {
+    await SecureStore.deleteItemAsync('token');
+    await SecureStore.deleteItemAsync('pushToken');
+    await SecureStore.deleteItemAsync('username');
+    await SecureStore.deleteItemAsync('_id');
+    Alert.alert('Session expired', 'Please log in again.');
+    router.replace('/(auth)/login' as any);
+  } finally {
+    // Small window so the burst of already-in-flight requests stays quiet
+    setTimeout(() => { handlingExpiredSession = false; }, 3000);
+  }
+};
 
 // Attaches the JWT to requests; returns empty when logged out (e.g. login/register)
 const authHeaders = async (): Promise<Record<string, string>> => {
@@ -22,12 +50,21 @@ const readJsonResponse = async (res: Response) => {
 
 // Core request helper: sends JSON with auth headers and throws on non-2xx responses.
 const apiFetch = async (path: string, options: { method?: string; body?: object } = {}) => {
+  const auth = await authHeaders();
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: options.method || 'GET',
-    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+    headers: { 'Content-Type': 'application/json', ...auth },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
   const data = await readJsonResponse(res);
+  if (
+    res.status === 401 &&
+    auth.Authorization &&
+    !CREDENTIAL_PATHS.some((p) => path.startsWith(p))
+  ) {
+    handleExpiredSession();
+    throw new Error(SESSION_EXPIRED_MESSAGE);
+  }
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 };
@@ -40,7 +77,11 @@ const withAlert = async <T>(title: string, fallback: T, run: () => Promise<T>): 
   try {
     return await run();
   } catch (err) {
-    Alert.alert(title, errorMessage(err));
+    // Session expiry already alerted + redirected once; don't stack alerts
+    // for every request that was in flight when the session died.
+    if (errorMessage(err) !== SESSION_EXPIRED_MESSAGE) {
+      Alert.alert(title, errorMessage(err));
+    }
     return fallback;
   }
 };

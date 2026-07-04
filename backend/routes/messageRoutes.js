@@ -24,7 +24,12 @@ router.get('/:gameId', async (req, res) => {
     // Hide messages from users the requester has blocked
     const me = await User.findById(req.userId, 'blockedUsers').lean();
     const blocked = me?.blockedUsers || [];
-    const messages = await GameMessage.find({ gameId, userId: { $nin: blocked } }).sort({ timestamp: 1 });
+    // Cap at the 200 most recent so a long-running recurring game's chat
+    // doesn't grow unbounded in one response; returned oldest-first as before.
+    const messages = await GameMessage.find({ gameId, userId: { $nin: blocked } })
+      .sort({ timestamp: -1 })
+      .limit(200);
+    messages.reverse();
     res.json(messages);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch messages' });
