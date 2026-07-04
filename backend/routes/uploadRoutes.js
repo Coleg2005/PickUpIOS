@@ -1,6 +1,5 @@
 import { Router } from "express";
 import multer from "multer";
-import path from "path";
 import cloudinary from "../config/cloudinary.js";
 import User from "../models/User.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -33,7 +32,10 @@ router.get("/pfp/:userid", async (req, res) => {
       return res.redirect(picture);
     }
 
-    return res.sendFile(path.resolve(process.cwd(), picture));
+    // Legacy local-disk paths (e.g. the old default-pfp) can't be served from
+    // App Platform's ephemeral filesystem — treat them as "no picture" so the
+    // app falls back to its initials avatar.
+    return res.status(404).json({ error: "Profile picture not found" });
   } catch (err) {
     console.error("Profile picture fetch error:", err);
     res.status(500).json({ error: "Failed to load profile picture" });

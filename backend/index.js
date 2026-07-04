@@ -1,4 +1,4 @@
-import './config/env.js'; // MUST be first: loads + validates env before anything else
+import { IS_PROD } from './config/env.js'; // MUST be first: loads + validates env before anything else
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -6,7 +6,6 @@ import rateLimit from 'express-rate-limit';
 import http from 'http';
 import { Server } from 'socket.io';
 import registerSocketHandlers from './socket.js';
-import path from 'path';
 
 import authRoutes from './routes/authRoutes.js';
 import friendRoutes from './routes/friendRoutes.js';
@@ -27,8 +26,11 @@ const app = express();
 // Behind nginx/reverse proxy — needed so rate limiting sees real client IPs
 app.set('trust proxy', 1);
 const server = http.createServer(app)
+// CORS only matters for browser clients; the native app sends no Origin header
+// and is unaffected. Dev allows all origins (Expo web / local tools); prod
+// sends no CORS headers at all, so browsers can't call the API cross-origin.
 const io = new Server(server, {
-  cors: { origin: '*'},
+  ...(IS_PROD ? {} : { cors: { origin: '*' } }),
 });
 registerSocketHandlers(io);
 
@@ -38,7 +40,8 @@ app.use((req, res, next) => {
 });
 
 app.use(helmet());
-app.use(cors());
+if (!IS_PROD) app.use(cors()); // see CORS note above
+
 app.use(express.json({ limit: '100kb' }));
 
 // Strict limit on credential endpoints to slow brute-force attempts
@@ -64,7 +67,6 @@ app.use('/auth/register', authLimiter);
 app.use('/auth/forgot-password', authLimiter);
 app.use('/auth/reset-password', authLimiter);
 
-app.use('/uploads', express.static(path.join('/var/www/uploads')));
 app.use("/inbox", inboxRoutes);
 app.use("/upload", uploadRoutes);
 app.use('/auth', authRoutes);
@@ -75,6 +77,46 @@ app.use('/message', messageRoutes);
 app.use('/report', reportRoutes);
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+// Global error handler (must be registered after all routes). Express 5
+// forwards rejected async route handlers here automatically. Client errors
+// (bad JSON body, oversized upload, etc.) return their real status/message;
+// everything else returns a generic 500 so stack traces never leak.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  if (err.name === 'MulterError') {
+    return res.status(400).json({ error: `Upload failed: ${err.message}` });
+  }
+  const status = err.status || err.statusCode;
+  if (status >= 400 && status < 500) {
+    return res.status(status).json({ error: err.message || 'Bad request' });
+  }
+  console.error('Unhandled route error:', err);
+  return res.status(500).json({ error: 'Internal server error' });
+});
+
+// One unawaited promise shouldn't take the whole server down: log and keep going.
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+});
+
+// After an uncaught synchronous exception the process state is unknown —
+// log and exit; the platform restarts the container.
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+  process.exit(1);
+});
+
+// App Platform sends SIGTERM on deploys/scaling: stop taking new connections,
+// let in-flight requests finish, then close the DB connection.
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(async () => {
+    await mongoose.connection.close();
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10_000).unref();
 });
 
 const mongoURI = process.env.MONGO_URI;
