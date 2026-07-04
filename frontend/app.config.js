@@ -17,7 +17,9 @@ export default {
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
-      supportsTablet: true,
+      // v1 targets phones only — the UI has never been tested on iPad, and
+      // App Review tests tablet layouts when this is true.
+      supportsTablet: false,
       // Permanent once submitted to the App Store. The dev flavor gets a
       // separate id so it can be installed alongside the production app.
       bundleIdentifier: IS_PROD_APP ? "me.pickupiosbackend.app" : "me.pickupiosbackend.app.dev",

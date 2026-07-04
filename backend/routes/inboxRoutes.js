@@ -12,6 +12,7 @@ router.get('/:userid', async (req, res) => {
       return res.status(403).json({ error: 'Cannot read another user\'s inbox' });
     }
     const notifs = await Notification.find({ recipient: userid })
+      .sort({ date: -1 }) // newest first — matches the {recipient, date} index
       .populate('object', '_id username profile name date location sport')
       .populate('sender', '_id username profile');
     res.status(200).json(notifs);
