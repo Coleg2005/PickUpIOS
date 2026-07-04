@@ -1,8 +1,14 @@
 import 'dotenv/config';
 
+// Which app "flavor" to build. Set by EAS build profiles (see eas.json) for
+// real builds, or by your local .env for `npm start`. Defaults to development
+// so local runs always use the dev flavor.
+const APP_ENV = process.env.APP_ENV || 'development';
+const IS_PROD_APP = APP_ENV === 'production';
+
 export default {
   expo: {
-    name: "PickUp2",
+    name: IS_PROD_APP ? "PickUp2" : "PickUp2 (Dev)",
     slug: "PickUp2",
     version: "1.0.0",
     orientation: "portrait",
@@ -11,9 +17,21 @@ export default {
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+      // Permanent once submitted to the App Store. The dev flavor gets a
+      // separate id so it can be installed alongside the production app.
+      bundleIdentifier: IS_PROD_APP ? "me.pickupiosbackend.app" : "me.pickupiosbackend.app.dev",
+      infoPlist: {
+        NSLocationWhenInUseUsageDescription:
+          "PickUp uses your location to show nearby pick-up games and set where a game is happening.",
+        NSCameraUsageDescription:
+          "PickUp uses your camera so you can take a profile photo.",
+        NSPhotoLibraryUsageDescription:
+          "PickUp needs access to your photos so you can choose a profile picture."
+      }
     },
     android: {
+      package: IS_PROD_APP ? "me.pickupiosbackend.app" : "me.pickupiosbackend.app.dev",
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#ffffff"
