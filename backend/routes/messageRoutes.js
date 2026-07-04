@@ -1,0 +1,74 @@
+import express from 'express';
+import GameMessage from '../models/GameMessage.js';
+import Game from '../models/Game.js';
+import User from '../models/User.js';
+import { sendPushNotifications } from '../utils/push.js';
+import { requireAuth } from '../middleware/auth.js';
+
+const router = express.Router();
+
+router.use(requireAuth);
+
+const isGameMember = (game, userId) =>
+  game.gameMembers.some((m) => (m._id || m).toString() === userId);
+
+// GET all messages for a game (members only)
+router.get('/:gameId', async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    const game = await Game.findById(gameId);
+    if (!game) return res.status(404).json({ error: 'Game not found' });
+    if (!isGameMember(game, req.userId)) {
+      return res.status(403).json({ error: 'Only game members can read messages' });
+    }
+    // Hide messages from users the requester has blocked
+    const me = await User.findById(req.userId, 'blockedUsers').lean();
+    const blocked = me?.blockedUsers || [];
+    const messages = await GameMessage.find({ gameId, userId: { $nin: blocked } }).sort({ timestamp: 1 });
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+// POST a new message (members only, sender taken from the token)
+router.post('/', async (req, res) => {
+  try {
+    const { gameId, message, messageType } = req.body;
+    if (!gameId || !message || typeof message !== 'string' || message.length > 2000) {
+      return res.status(400).json({ error: 'gameId and a message under 2000 characters are required' });
+    }
+    const gameDoc = await Game.findById(gameId).populate('gameMembers', 'pushTokens');
+    if (!gameDoc) return res.status(404).json({ error: 'Game not found' });
+    if (!isGameMember(gameDoc, req.userId)) {
+      return res.status(403).json({ error: 'Only game members can send messages' });
+    }
+    const sender = await User.findById(req.userId, 'username');
+    const userId = req.userId;
+    const username = sender?.username || 'unknown';
+    const newMessage = new GameMessage({
+      gameId,
+      userId,
+      username,
+      message,
+      timestamp: new Date(),
+      messageType
+    });
+    await newMessage.save();
+    
+    // If using sockets, emit here (optional)
+    req.io?.to(gameId).emit('new-message', newMessage);
+
+    if (messageType !== 'system') {
+      const recipients = gameDoc.gameMembers.filter((m) => m._id.toString() !== userId);
+      const tokens = recipients.flatMap((m) => m.pushTokens || []);
+      sendPushNotifications(tokens, username, message, { type: 'game-message', gameId });
+    }
+
+    res.status(201).json(newMessage);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to send message: ', err });
+  }
+});
+
+export default router;
