@@ -28,6 +28,12 @@ const transporter = nodemailer.createTransport({
 
 const RESET_TOKEN_EXPIRY = 15 * 60 * 1000; // 15 minutes
 
+// Reset tokens are stored hashed (like passwords) so a database leak doesn't
+// hand out live password-reset links. The plaintext token only ever exists in
+// the email we send.
+const hashResetToken = (token) =>
+  crypto.createHash('sha256').update(token).digest('hex');
+
 // ─── DEV / PROD CONFIG ────────────────────────────────────────────────────────
 const IS_DEV = process.env.NODE_ENV !== 'production';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
@@ -156,9 +162,9 @@ router.post('/forgot-password', async (req, res) => {
       return res.json({ ok: true, message: 'If email exists, reset link has been sent.' });
     }
 
-    // Generate reset token
+    // Generate reset token; only the hash is persisted
     const resetToken = crypto.randomBytes(32).toString('hex');
-    user.resetToken = resetToken;
+    user.resetToken = hashResetToken(resetToken);
     user.resetTokenExpiry = new Date(Date.now() + RESET_TOKEN_EXPIRY);
     await user.save();
 
@@ -295,8 +301,8 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'User not found' });
     }
 
-    // Check token validity
-    if (user.resetToken !== token) {
+    // Check token validity (stored value is the sha256 of the emailed token)
+    if (!user.resetToken || user.resetToken !== hashResetToken(String(token))) {
       return res.status(400).json({ ok: false, error: 'Invalid reset token' });
     }
 

@@ -33,7 +33,10 @@ const NotificationSchema = new mongoose.Schema({
     default: null
   }
 });
- 
+
+// Inbox is always fetched per recipient, newest first.
+NotificationSchema.index({ recipient: 1, date: -1 });
+
 const Notification = mongoose.model('Notification', NotificationSchema);
 
 export default Notification;

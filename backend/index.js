@@ -1,4 +1,15 @@
 import { IS_PROD } from './config/env.js'; // MUST be first: loads + validates env before anything else
+import * as Sentry from '@sentry/node';
+
+// Error tracking — a no-op unless SENTRY_DSN is set, so local dev and
+// environments without a Sentry account are unaffected.
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+  });
+}
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -93,6 +104,7 @@ app.use((err, req, res, next) => {
     return res.status(status).json({ error: err.message || 'Bad request' });
   }
   console.error('Unhandled route error:', err);
+  Sentry.captureException(err); // no-op when Sentry isn't configured
   return res.status(500).json({ error: 'Internal server error' });
 });
 

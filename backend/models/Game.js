@@ -51,7 +51,13 @@ const GameSchema = new mongoose.Schema({
     default: 'none'
   }
 });
- 
+
+// Match the app's hot queries: games at a venue (map view), games a user
+// leads, and games a user has joined (home screen).
+GameSchema.index({ fsq_id: 1 });
+GameSchema.index({ leader: 1 });
+GameSchema.index({ gameMembers: 1 });
+
 const Game = mongoose.model('Game', GameSchema);
 
 export default Game;
