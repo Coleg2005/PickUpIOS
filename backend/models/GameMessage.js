@@ -30,7 +30,10 @@ const GameMessageSchema = new mongoose.Schema({
     required: true
   }
 });
- 
+
+// Chat history is always fetched per game in timestamp order.
+GameMessageSchema.index({ gameId: 1, timestamp: 1 });
+
 const GameMessage = mongoose.model('GameMessage', GameMessageSchema);
 
 export default GameMessage;
