@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Game from '../models/Game.js';
 import GameMessage from '../models/GameMessage.js';
@@ -8,9 +9,11 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import { requireAuth, SECRET } from '../middleware/auth.js';
 const router = express.Router();
 
-const SECRET = process.env.SECRET_KEY || 'dev-secret-key';
+const TOKEN_EXPIRY = '7d';
+const MIN_PASSWORD_LENGTH = 8;
 
 // Email service setup (configure with your email provider)
 const transporter = nodemailer.createTransport({
@@ -35,51 +38,65 @@ const DEEP_LINK_BASE = IS_DEV
   : 'pickup2:/';
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Register route works
 router.post('/register', async (req, res) => {
-  const { username, email, password } = req.body;
+  try {
+    const { username, email, password } = req.body;
 
-  // checks that info is present
-  if (!username || !email || !password) {
-    return res.status(400).json({ ok: false, error: 'username, email, and password are required' });
+    if (!username || !email || !password) {
+      return res.status(400).json({ ok: false, error: 'username, email, and password are required' });
+    }
+
+    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({ ok: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+    }
+
+    if (await User.findOne({ username })) {
+      return res.status(400).json({ ok: false, error: 'Username already taken' });
+    }
+
+    if (await User.findOne({ email })) {
+      return res.status(400).json({ ok: false, error: 'Email already registered' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ username, email, password: hashedPassword });
+    await user.save();
+
+    const token = jwt.sign({ _id: user._id }, SECRET, { expiresIn: TOKEN_EXPIRY });
+    return res.json({ ok: true, message: 'Registered successfully', token });
+  } catch (error) {
+    console.error('Register error:', error);
+    return res.status(500).json({ ok: false, error: 'Registration failed' });
   }
-  
-  // checks if username or email already exists
-  if (await User.findOne({ username })) {
-    return res.status(400).json({ ok: false, error: 'Username already taken' });
-  }
-
-  if (await User.findOne({ email })) {
-    return res.status(400).json({ ok: false, error: 'Email already registered' });
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const user = new User({ username, email, password: hashedPassword });
-  await user.save();
-
-  const token = jwt.sign({ _id: user._id }, SECRET, { expiresIn: '1h' });
-  return res.json({ ok: true, message: 'Registered successfully', token });
 });
 
 router.post('/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-  const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ ok: false, error: 'username and password are required' });
+    }
 
-  if (!username || !password) {
-    return res.status(400).json({ ok: false, error: 'username and password are required' });
+    const user = await User.findOne({ username });
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ ok: false, error: 'Invalid credentials' });
+    }
+
+    if (user.isBanned) {
+      return res.status(403).json({ ok: false, error: 'Your account has been suspended' });
+    }
+
+    const token = jwt.sign({ _id: user._id }, SECRET, { expiresIn: TOKEN_EXPIRY });
+    return res.json({ ok: true, token });
+  } catch (error) {
+    console.error('Login error:', error);
+    return res.status(500).json({ ok: false, error: 'Login failed' });
   }
-
-  const user = await User.findOne({ username });
-
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(401).json({ ok: false, error: 'Invalid credentials' });
-  }
-
-  const token = jwt.sign({ _id: user._id }, SECRET, { expiresIn: '1h' });
-  return res.json({ ok: true, token });
 });
 
-router.get('/user/:id', async (req, res) => {
+router.get('/user/:id', requireAuth, async (req, res) => {
 
   const { id } = req.params;
 
@@ -87,35 +104,34 @@ router.get('/user/:id', async (req, res) => {
     return res.status(400).json({ error: 'userid are required' });
   }
 
-  const user = await User.findOne({ _id: id });
+  // Never expose password hash, reset tokens, push tokens, or email to other users.
+  // role and blockedUsers are only returned when a user fetches themself.
+  const isSelf = req.userId === id;
+  const projection = isSelf
+    ? '_id username profile friends createdAt role blockedUsers'
+    : '_id username profile friends createdAt';
+  const user = await User.findOne({ _id: id }, projection);
 
   if (!user) {
-    return res.status(401).json({ error: 'Could not find User' });
+    return res.status(404).json({ error: 'Could not find User' });
   }
   res.json({ user });
 });
 
-router.get('/protected', (req, res) => {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ error: 'No token' });
-
-  try {
-    const decoded = jwt.verify(auth.split(' ')[1], SECRET);
-    res.json({ message: 'Protected content', user: decoded });
-  } catch (e) {
-    console.error('JWT verification error:', e);
-    res.status(401).json({ error: 'Invalid token' });
-  }
+router.get('/protected', requireAuth, (req, res) => {
+  res.json({ message: 'Protected content', user: { _id: req.userId } });
 });
 
 // Search users by username
-router.get('/search', async (req, res) => {
+router.get('/search', requireAuth, async (req, res) => {
   const { username } = req.query;
   if (!username) return res.status(400).json({ ok: false, error: 'username query is required' });
 
   try {
+    // Escape regex metacharacters so user input can't inject patterns (ReDoS)
+    const escaped = String(username).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const users = await User.find(
-      { username: { $regex: username, $options: 'i' } },
+      { username: { $regex: escaped, $options: 'i' } },
       '_id username profile'
     ).limit(10);
     return res.json({ ok: true, users });
@@ -212,12 +228,64 @@ router.get('/reset-redirect', (req, res) => {
 </html>`);
 });
 
+// Friend invite link - public page (shared via SMS etc.) that deep-links to
+// the sender's profile in the app so the recipient can add them as a friend
+router.get('/invite-redirect', async (req, res) => {
+  const { userid } = req.query;
+
+  if (!userid || !mongoose.Types.ObjectId.isValid(String(userid))) {
+    return res.status(400).send('<h2>Invalid invite link.</h2>');
+  }
+
+  const user = await User.findById(userid, 'username').lean();
+  if (!user) {
+    return res.status(404).send('<h2>This invite link is no longer valid.</h2>');
+  }
+
+  // Escape so a username can't inject HTML into the page
+  const safeUsername = String(user.username).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const deepLink = `${DEEP_LINK_BASE}/(tabs)/pages/user/${encodeURIComponent(String(userid))}`;
+
+  res.send(`<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Join ${safeUsername} on PickUp</title>
+    <style>
+      body { font-family: -apple-system, sans-serif; background: #f5f5f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+      .card { background: white; border-radius: 16px; padding: 40px 32px; text-align: center; max-width: 360px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+      h2 { margin: 0 0 12px; font-size: 24px; color: #111; }
+      p { color: #666; font-size: 15px; margin: 0 0 28px; }
+      a.btn { display: inline-block; background: #007AFF; color: white; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-size: 17px; font-weight: 600; }
+      a.btn:hover { background: #005ecb; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>${safeUsername} invited you to PickUp</h2>
+      <p>Tap the button below to open the app and add ${safeUsername} as a friend. Don't have the app yet? Download PickUp first, then come back to this link.</p>
+      <a class="btn" href="${deepLink}">Open PickUp App</a>
+    </div>
+    <script>
+      // Auto-open the deep link on page load
+      window.location.href = "${deepLink}";
+    </script>
+  </body>
+</html>`);
+});
+
 // Reset Password - Validate token and update password
 router.post('/reset-password', async (req, res) => {
   const { email, token, newPassword } = req.body;
 
   if (!email || !token || !newPassword) {
     return res.status(400).json({ ok: false, error: 'Email, token, and new password are required' });
+  }
+
+  if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
+    return res.status(400).json({ ok: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
   }
 
   try {
@@ -250,18 +318,43 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-// Delete Account
-router.delete('/delete-account', async (req, res) => {
-  const auth = req.headers.authorization;
-  if (!auth) return res.status(401).json({ ok: false, error: 'No token' });
+// Register a device's Expo push token (always for the authenticated user)
+router.post('/push-token', requireAuth, async (req, res) => {
+  const { token } = req.body;
 
-  let userId;
-  try {
-    const decoded = jwt.verify(auth.split(' ')[1], SECRET);
-    userId = decoded._id;
-  } catch {
-    return res.status(401).json({ ok: false, error: 'Invalid token' });
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ ok: false, error: 'token is required' });
   }
+
+  try {
+    await User.updateOne({ _id: req.userId }, { $addToSet: { pushTokens: token } });
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error('Register push token error:', error);
+    return res.status(500).json({ ok: false, error: 'Failed to register push token' });
+  }
+});
+
+// Unregister a device's Expo push token (e.g. on logout)
+router.delete('/push-token', requireAuth, async (req, res) => {
+  const { token } = req.body;
+
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ ok: false, error: 'token is required' });
+  }
+
+  try {
+    await User.updateOne({ _id: req.userId }, { $pull: { pushTokens: token } });
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error('Unregister push token error:', error);
+    return res.status(500).json({ ok: false, error: 'Failed to unregister push token' });
+  }
+});
+
+// Delete Account
+router.delete('/delete-account', requireAuth, async (req, res) => {
+  const userId = req.userId;
 
   try {
     // Remove user from all friends lists

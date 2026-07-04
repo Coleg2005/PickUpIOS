@@ -1,10 +1,15 @@
 import express from 'express';
 import User from '../models/User.js';
 import Game from '../models/Game.js'
+import Notification from '../models/Notification.js';
+import { sendPushNotifications } from '../utils/push.js';
+import { requireAuth } from '../middleware/auth.js';
 const router = express.Router();
 
-const SECRET = process.env.SECRET_KEY || 'dev-secret-key';
 const FSQ_KEY = process.env.FSQ_KEY;
+
+// Every game route requires a logged-in user (also keeps the FSQ proxy from anonymous abuse)
+router.use(requireAuth);
 
 router.get('/places/search', async (req, res) => {
   try {
@@ -93,15 +98,21 @@ router.get('/places/:placeId', async (req, res) => {
 router.post('', async (req, res) => {
 
   try {
-    const { name, date, location, fsq_id, sport, leader, description, maxPlayers } = req.body;
+    const { name, date, location, fsq_id, sport, leader, description, maxPlayers, recurrence } = req.body;
     if (!name || !date || !location || !fsq_id || !sport || !leader ) {
       return res.status(400).json({ error: 'name, date, location, sport, and leader are required' });
+    }
+    if (recurrence && !['none', 'daily', 'every-other-day', 'weekly'].includes(recurrence)) {
+      return res.status(400).json({ error: 'Invalid recurrence' });
     }
     const leadUser = await User.findOne({username: leader});
     if (!leadUser) {
       return res.status(404).json({ error: 'Leader not found' });
     }
-    const game = new Game({ name, gameMembers: [leadUser], date, location, fsq_id, sport, leader: leadUser._id, description, maxPlayers: maxPlayers || null });
+    if (leadUser._id.toString() !== req.userId) {
+      return res.status(403).json({ error: 'You can only create games as yourself' });
+    }
+    const game = new Game({ name, gameMembers: [leadUser], date, location, fsq_id, sport, leader: leadUser._id, description, maxPlayers: maxPlayers || null, recurrence: recurrence || 'none' });
     await game.save();
 
     res.status(201).json({ message: 'Game created successfully' });
@@ -147,7 +158,7 @@ router.get('/location/:locationID', async (req, res) => {
     if (!locationID) {
       return res.status(400).json({ error: 'locationID is required' });
     }
-    const games = await Game.find({ fsq_id: locationID }).populate('gameMembers').populate('leader');
+    const games = await Game.find({ fsq_id: locationID }).populate('gameMembers', '_id username profile').populate('leader', '_id username profile');
     res.json(games);
   } catch {
     res.status(500).json({ error: 'Error getting game' });
@@ -191,7 +202,7 @@ router.get('/id/:id', async (req, res) => {
     if (!id) {
       return res.status(400).json({ error: 'id is required' });
     }
-    const game = await Game.findById(id).populate('gameMembers').populate('leader');;
+    const game = await Game.findById(id).populate('gameMembers', '_id username profile').populate('leader', '_id username profile');
     if (!game) {
       return res.status(400).json({ error: 'game not found'});
     }
@@ -214,6 +225,9 @@ router.delete('/:gameid', async (req, res) => {
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
+    if (game.leader.toString() !== req.userId) {
+      return res.status(403).json({ error: 'Only the game leader can delete the game' });
+    }
     await game.deleteOne();
     res.json({ message: 'Game deleted successfully' });
   } catch (error) {
@@ -231,6 +245,13 @@ router.patch('/removeMember', async (req, res) => {
     const game = await Game.findOne({ _id: gameid });
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
+    }
+
+    // Only the member themselves (leaving) or the game leader (kicking) may remove a member
+    const isSelf = gameMember === req.userId;
+    const isLeader = game.leader.toString() === req.userId;
+    if (!isSelf && !isLeader) {
+      return res.status(403).json({ error: 'Not authorized to remove this member' });
     }
 
     const member = await User.findOne({_id: gameMember});
@@ -252,12 +273,78 @@ router.patch('/removeMember', async (req, res) => {
   }
 });
 
+// Invite a friend to a game — creates a game-invite notification in their inbox
+router.post('/invite', async (req, res) => {
+  try {
+    const { gameid, friendid } = req.body;
+    if (!gameid || !friendid) {
+      return res.status(400).json({ error: 'gameid and friendid are required' });
+    }
+
+    const game = await Game.findById(gameid);
+    if (!game) return res.status(404).json({ error: 'Game not found' });
+
+    const isMember = game.gameMembers.some((m) => (m._id || m).toString() === req.userId);
+    if (!isMember) {
+      return res.status(403).json({ error: 'Only game members can invite friends' });
+    }
+
+    const sender = await User.findById(req.userId);
+    const friend = await User.findById(friendid);
+    if (!sender || !friend) return res.status(404).json({ error: 'User not found' });
+
+    // Only friends can be invited
+    const isFriend = (sender.friends || []).some((f) => (f._id || f).toString() === friend._id.toString());
+    if (!isFriend) {
+      return res.status(403).json({ error: 'You can only invite your friends' });
+    }
+
+    if ((friend.blockedUsers || []).some((b) => b.toString() === req.userId)) {
+      return res.status(403).json({ error: 'Unable to invite this user' });
+    }
+
+    if (game.gameMembers.some((m) => (m._id || m).toString() === friend._id.toString())) {
+      return res.status(400).json({ error: 'Already in this game' });
+    }
+
+    if (game.maxPlayers && game.gameMembers.length >= game.maxPlayers) {
+      return res.status(400).json({ error: 'Game is full' });
+    }
+
+    // One pending invite per person per game, regardless of who sent it
+    const existing = await Notification.findOne({ recipient: friend._id, type: 'game-invite', object: game._id });
+    if (existing) {
+      return res.status(400).json({ error: 'Already invited to this game' });
+    }
+
+    const notif = new Notification({
+      recipient: friend._id,
+      date: new Date(),
+      type: 'game-invite',
+      object: game._id,
+      objectModel: 'Game',
+      sender: sender._id,
+    });
+    await notif.save();
+    sendPushNotifications(friend.pushTokens, 'Game Invite', `${sender.username} invited you to ${game.name}`, { type: 'game-invite', gameId: game._id.toString() });
+
+    res.json({ message: 'Invite sent' });
+  } catch (error) {
+    console.error('Game invite error:', error);
+    res.status(500).json({ error: 'Error sending game invite' });
+  }
+});
+
 // add game member works
 router.patch('/member', async (req, res) => {
   try {
     const { gameid, gameMember } = req.body;
     if (!gameid || !gameMember) {
       return res.status(400).json({ error: 'gameid, and gameMember are required', gameMember});
+    }
+    // Users can only join games as themselves
+    if (gameMember !== req.userId) {
+      return res.status(403).json({ error: 'You can only join a game as yourself' });
     }
     const game = await Game.findOne({ _id: gameid });
     if (!game) {

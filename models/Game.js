@@ -41,6 +41,14 @@ const GameSchema = new mongoose.Schema({
   maxPlayers: {
     type: Number,
     default: null,
+  },
+  // Recurring games are rolled forward to their next occurrence by the
+  // recurrence job (utils/recurrence.js) instead of expiring via the TTL
+  // index on date. 'weekly' repeats on the weekday of the game's date.
+  recurrence: {
+    type: String,
+    enum: ['none', 'daily', 'every-other-day', 'weekly'],
+    default: 'none'
   }
 });
  

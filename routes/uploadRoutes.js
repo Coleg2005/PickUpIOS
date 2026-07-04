@@ -3,9 +3,16 @@ import multer from "multer";
 import path from "path";
 import cloudinary from "../config/cloudinary.js";
 import User from "../models/User.js";
+import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB cap
+  fileFilter: (req, file, cb) => {
+    cb(null, /^image\//.test(file.mimetype));
+  },
+});
 
 router.get("/pfp/:userid", async (req, res) => {
   try {
@@ -33,15 +40,14 @@ router.get("/pfp/:userid", async (req, res) => {
   }
 });
 
-router.post("/", upload.single("image"), async (req, res) => {
+router.post("/", requireAuth, upload.single("image"), async (req, res) => {
   try {
-    const { userid } = req.body;
     const file = req.file;
 
     if (!file) return res.status(400).json({ error: "No file uploaded" });
-    if (!userid) return res.status(400).json({ error: "No user id provided" });
 
-    const user = await User.findById(userid);
+    // Only the authenticated user can change their own picture
+    const user = await User.findById(req.userId);
     if (!user) return res.status(400).json({ error: "User not found" });
 
     // Upload to Cloudinary
@@ -60,8 +66,7 @@ router.post("/", upload.single("image"), async (req, res) => {
     }
 
     // Save new image URL
-    user.profile.picture = result.secure_url;
-    await user.save();
+    await User.updateOne({ _id: user._id }, { $set: { 'profile.picture': result.secure_url } });
 
     res.status(201).json({
       message: "Picture uploaded successfully",

@@ -1,21 +1,18 @@
 import mongoose from 'mongoose';
 
-// general schema, think sample game
-
 const NotificationSchema = new mongoose.Schema({
-
   recipient: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    default: []
+    required: true
   },
   date: {
     type: Date,
-    required: true,
+    default: Date.now
   },
   type: {
     type: String,
-    enum: ['friend-request', 'upcoming-game'],
+    enum: ['friend-request', 'upcoming-game', 'game-invite'],
     required: true
   },
   object: {
@@ -27,6 +24,13 @@ const NotificationSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: ['User', 'Game']
+  },
+  // Who triggered the notification (e.g. the friend who sent a game invite);
+  // for friend requests the sender is already the object itself
+  sender: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   }
 });
  
