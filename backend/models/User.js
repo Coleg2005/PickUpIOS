@@ -23,8 +23,10 @@ const userSchema = new mongoose.Schema({
       default: ''
     },
     picture: {
+      // Cloudinary URL once the user uploads one. Empty means "no picture" —
+      // the app renders an initials avatar (Avatar.tsx) for falsy values.
       type: String,
-      default: 'public/assets/default-pfp.jpg'
+      default: ''
     }
   },
   resetToken: {
