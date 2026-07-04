@@ -1,0 +1,3 @@
+# Local editor/tooling state at the repo root
+.expo/
+.claude/settings.local.json
