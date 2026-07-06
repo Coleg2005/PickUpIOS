@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getFriends, removeFriend, getPfp } from '@/utils/api';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import Avatar from '@/components/Avatar';
@@ -51,24 +52,30 @@ const FriendsList = ({ userid, onClose }: FriendsListProps) => {
   return (
     <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor }}>
       {/* Header */}
-      <TouchableOpacity
-        onPress={onClose}
-        activeOpacity={1}
+      <SafeAreaView
+        edges={['top']}
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingHorizontal: Spacing.lg,
-          paddingTop: Spacing.lg,
-          paddingBottom: Spacing.md,
           borderBottomWidth: 1,
           borderBottomColor: cardBorder,
           backgroundColor: surface,
         }}
       >
-        <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: FontSize.xl, color: textColor }}>Friends</Text>
-        <Ionicons name="chevron-down" size={24} color={subtext} />
-      </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onClose}
+          activeOpacity={1}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: Spacing.lg,
+            paddingTop: Spacing.sm,
+            paddingBottom: Spacing.md,
+          }}
+        >
+          <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: FontSize.xl, color: textColor }}>Friends</Text>
+          <Ionicons name="chevron-down" size={24} color={subtext} />
+        </TouchableOpacity>
+      </SafeAreaView>
 
       <FlatList
         data={friends}

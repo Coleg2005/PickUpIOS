@@ -8,6 +8,18 @@ import { jwtDecode } from 'jwt-decode';
 import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
 import { registerForPushNotificationsAsync } from '@/utils/notifications';
 import { registerPushToken } from '@/utils/api';
+import { ThemePreferenceProvider } from '@/context/ThemeContext';
+
+// Reads the resolved color scheme, so it must render inside ThemePreferenceProvider
+function ThemedApp() {
+  const colorScheme = useColorScheme();
+  return (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack screenOptions={{ headerShown: false }} />
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+    </ThemeProvider>
+  );
+}
 
 export default function RootLayout() {
   const segments = useSegments();
@@ -49,14 +61,11 @@ export default function RootLayout() {
     setupPushNotifications();
   }, [segments]);
 
-  const colorScheme = useColorScheme();
-
   if (!loaded) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }} />
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <ThemePreferenceProvider>
+      <ThemedApp />
+    </ThemePreferenceProvider>
   );
 }

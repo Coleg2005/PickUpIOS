@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Alert, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Share } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Share } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -7,12 +7,11 @@ import Header from '@/components/Header';
 import Avatar from '@/components/Avatar';
 import AppButton from '@/components/AppButton';
 import FriendsList from '@/components/FriendsList';
-import BlockedUsersList from '@/components/BlockedUsersList';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { Radius, Spacing, FontSize, FontWeight } from '@/constants/Theme';
 
 import { logout } from '@/utils/auth';
-import { getUser, updateProfile, uploadPfp, getPfp, getFriends, deleteAccount, getFriendInviteUrl } from '@/utils/api';
+import { getUser, updateProfile, uploadPfp, getPfp, getFriends, getFriendInviteUrl } from '@/utils/api';
 
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -26,7 +25,6 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [description, setDescription] = useState('');
   const [friendsVisible, setFriendsVisible] = useState(false);
-  const [blockedVisible, setBlockedVisible] = useState(false);
   const [refresh, setRefresh] = useState(false);
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,25 +106,6 @@ export default function Profile() {
     } catch {}
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'This will permanently delete your account and all your data. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            const res = await deleteAccount();
-            if (!res.ok) { Alert.alert('Error', res.error || 'Failed to delete account'); return; }
-            router.replace('/(auth)/login');
-          },
-        },
-      ]
-    );
-  };
-
   const textColor = useThemeColor({}, 'text');
   const subtext = useThemeColor({}, 'subtext');
   const backgroundColor = useThemeColor({}, 'background');
@@ -203,9 +182,7 @@ export default function Profile() {
             <AppButton title="Moderation" onPress={() => router.push('/(tabs)/pages/moderation' as any)} />
           )}
           <AppButton title="Invite a Friend" onPress={handleInviteFriend} />
-          <AppButton title="Blocked Users" onPress={() => setBlockedVisible(true)} variant="secondary" />
           <AppButton title="Log Out" onPress={handleLogout} variant="secondary" />
-          <AppButton title="Delete Account" onPress={handleDeleteAccount} variant="danger" />
         </View>
 
       </ScrollView>
@@ -214,9 +191,6 @@ export default function Profile() {
         <FriendsList userid={user._id} onClose={() => setFriendsVisible(false)} />
       )}
 
-      {blockedVisible && (
-        <BlockedUsersList onClose={() => setBlockedVisible(false)} />
-      )}
     </View>
   );
 }
