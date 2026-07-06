@@ -48,7 +48,7 @@ const Header = () => {
         PickUp
       </Text>
 
-      <Text style={[styles.username, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>
+      <Text numberOfLines={1} style={[styles.username, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>
         {username ?? ''}
       </Text>
 
@@ -82,13 +82,10 @@ const styles = StyleSheet.create({
     width: 80,
   },
   username: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
-    position: 'absolute',
-    left: 0,
-    right: 0,
+    flex: 1,
     textAlign: 'center',
-    pointerEvents: 'none',
   },
   actions: {
     flexDirection: 'row',
