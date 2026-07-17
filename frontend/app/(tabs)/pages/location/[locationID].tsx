@@ -178,6 +178,7 @@ export default function PlaceScreen() {
                 placeholderTextColor={subtext}
                 value={gameName}
                 onChangeText={setGameName}
+                maxLength={60}
                 style={inputStyle}
               />
 
@@ -227,6 +228,7 @@ export default function PlaceScreen() {
                 placeholderTextColor={subtext}
                 value={gameDescription}
                 onChangeText={setGameDescription}
+                maxLength={500}
                 multiline
                 numberOfLines={3}
                 style={[inputStyle, { minHeight: 60 }]}

@@ -43,11 +43,18 @@ router.post('/', async (req, res) => {
     if (!gameId || !message || typeof message !== 'string' || message.length > 2000) {
       return res.status(400).json({ error: 'gameId and a message under 2000 characters are required' });
     }
-    const gameDoc = await Game.findById(gameId).populate('gameMembers', 'pushTokens');
+    const gameDoc = await Game.findById(gameId).populate('gameMembers', 'pushTokens blockedUsers');
     if (!gameDoc) return res.status(404).json({ error: 'Game not found' });
     if (!isGameMember(gameDoc, req.userId)) {
       return res.status(403).json({ error: 'Only game members can send messages' });
     }
+
+    // Members who blocked the sender get neither the live message nor a push
+    const blockers = new Set(
+      gameDoc.gameMembers
+        .filter((m) => (m.blockedUsers || []).some((b) => b.toString() === req.userId))
+        .map((m) => m._id.toString())
+    );
     const sender = await User.findById(req.userId, 'username');
     const userId = req.userId;
     const username = sender?.username || 'unknown';
@@ -62,17 +69,18 @@ router.post('/', async (req, res) => {
     await newMessage.save();
     
     // If using sockets, emit here (optional)
-    req.io?.to(gameId).emit('new-message', newMessage);
+    req.io?.to(gameId).except([...blockers].map((id) => `user:${id}`)).emit('new-message', newMessage);
 
     if (messageType !== 'system') {
-      const recipients = gameDoc.gameMembers.filter((m) => m._id.toString() !== userId);
+      const recipients = gameDoc.gameMembers.filter((m) => m._id.toString() !== userId && !blockers.has(m._id.toString()));
       const tokens = recipients.flatMap((m) => m.pushTokens || []);
       sendPushNotifications(tokens, username, message, { type: 'game-message', gameId });
     }
 
     res.status(201).json(newMessage);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to send message: ', err });
+    console.error('Send message error:', err);
+    res.status(500).json({ error: 'Failed to send message' });
   }
 });
 

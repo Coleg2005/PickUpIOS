@@ -10,6 +10,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import { requireAuth, SECRET } from '../middleware/auth.js';
+import { deleteImageByUrl } from '../config/cloudinary.js';
 const router = express.Router();
 
 const TOKEN_EXPIRY = '7d';
@@ -389,8 +390,9 @@ router.delete('/delete-account', requireAuth, async (req, res) => {
   const userId = req.userId;
 
   try {
-    // Remove user from all friends lists
+    // Remove user from all friends lists and block lists
     await User.updateMany({ friends: userId }, { $pull: { friends: userId } });
+    await User.updateMany({ blockedUsers: userId }, { $pull: { blockedUsers: userId } });
 
     // Delete all games they lead (and their messages)
     const ledGames = await Game.find({ leader: userId }, '_id');
@@ -408,8 +410,9 @@ router.delete('/delete-account', requireAuth, async (req, res) => {
     await Notification.deleteMany({ recipient: userId });
     await Notification.deleteMany({ object: userId });
 
-    // Delete the user
-    await User.findByIdAndDelete(userId);
+    // Delete the user, then their profile picture in Cloudinary (fail-soft)
+    const deletedUser = await User.findByIdAndDelete(userId);
+    await deleteImageByUrl(deletedUser?.profile?.picture);
 
     return res.json({ ok: true });
   } catch (error) {
