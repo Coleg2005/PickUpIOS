@@ -40,18 +40,14 @@ router.get('/places/search', async (req, res) => {
     const data = await response.json();
 
     if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error || 'Failed to fetch places',
-        details: data,
-      });
+      console.error('FSQ places search failed:', response.status, data);
+      return res.status(response.status).json({ error: 'Failed to fetch places' });
     }
 
     return res.json({ results: data.results || [] });
   } catch (error) {
-    return res.status(500).json({
-      error: 'Failed to fetch places',
-      details: error.message,
-    });
+    console.error('Places search error:', error);
+    return res.status(500).json({ error: 'Failed to fetch places' });
   }
 });
 
@@ -78,29 +74,35 @@ router.get('/places/:placeId', async (req, res) => {
     const data = await response.json();
 
     if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error || 'Failed to fetch place details',
-        details: data,
-      });
+      console.error('FSQ place details failed:', response.status, data);
+      return res.status(response.status).json({ error: 'Failed to fetch place details' });
     }
 
     return res.json(data);
   } catch (error) {
-    return res.status(500).json({
-      error: 'Failed to fetch place details',
-      details: error.message,
-    });
+    console.error('Place details error:', error);
+    return res.status(500).json({ error: 'Failed to fetch place details' });
   }
 });
 
+
+const MAX_NAME_LENGTH = 60;
+const MAX_DESCRIPTION_LENGTH = 500;
 
 // Create game works
 router.post('', async (req, res) => {
 
   try {
-    const { name, date, location, fsq_id, sport, leader, description, maxPlayers, recurrence } = req.body;
+    let { name, date, location, fsq_id, sport, leader, description, maxPlayers, recurrence } = req.body;
     if (!name || !date || !location || !fsq_id || !sport || !leader ) {
       return res.status(400).json({ error: 'name, date, location, sport, and leader are required' });
+    }
+    name = String(name).trim();
+    if (!name || name.length > MAX_NAME_LENGTH) {
+      return res.status(400).json({ error: `Game name must be 1-${MAX_NAME_LENGTH} characters` });
+    }
+    if (description && String(description).length > MAX_DESCRIPTION_LENGTH) {
+      return res.status(400).json({ error: `Description must be at most ${MAX_DESCRIPTION_LENGTH} characters` });
     }
     if (recurrence && !['none', 'daily', 'every-other-day', 'weekly'].includes(recurrence)) {
       return res.status(400).json({ error: 'Invalid recurrence' });
@@ -117,8 +119,8 @@ router.post('', async (req, res) => {
 
     res.status(201).json({ message: 'Game created successfully' });
   } catch (error) {
-    
-    res.status(500).json({ error: "Failed to create game", details: error.message });
+    console.error('Create game error:', error);
+    res.status(500).json({ error: 'Failed to create game' });
   }
 });
 
@@ -128,7 +130,8 @@ router.get('/active-locations', async (req, res) => {
     const fsq_ids = await Game.distinct('fsq_id');
     res.json(fsq_ids);
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching active locations', details: error.message });
+    console.error('Active locations error:', error);
+    res.status(500).json({ error: 'Error fetching active locations' });
   }
 });
 
@@ -148,7 +151,8 @@ router.post('/by-locations', async (req, res) => {
     }
     res.json(grouped);
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching games by locations', details: error.message });
+    console.error('Games by locations error:', error);
+    res.status(500).json({ error: 'Error fetching games by locations' });
   }
 });
 
@@ -231,7 +235,8 @@ router.delete('/:gameid', async (req, res) => {
     await game.deleteOne();
     res.json({ message: 'Game deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Error deleting game', details: error.message });
+    console.error('Delete game error:', error);
+    res.status(500).json({ error: 'Error deleting game' });
   }
 });
 
@@ -269,7 +274,8 @@ router.patch('/removeMember', async (req, res) => {
     await game.save();
     res.json({ message: 'Game member removed successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Error removing game member', details: error.message });
+    console.error('Remove game member error:', error);
+    res.status(500).json({ error: 'Error removing game member' });
   }
 });
 
@@ -364,7 +370,8 @@ router.patch('/member', async (req, res) => {
     await game.save();
     res.json({ message: 'Game member added successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Error adding game member', details: error.message });
+    console.error('Add game member error:', error);
+    res.status(500).json({ error: 'Error adding game member' });
   }
 });
 

@@ -87,7 +87,7 @@ app.use('/game', gameRoutes);
 app.use('/profile', profileRoutes);
 app.use('/message', messageRoutes);
 app.use('/report', reportRoutes);
-app.use('/', legalRoutes); // GET /privacy — public privacy policy (required by app stores)
+app.use('/', legalRoutes); // GET /privacy + /terms — public legal pages (required by app stores)
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });

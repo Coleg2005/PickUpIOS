@@ -100,7 +100,9 @@ router.get('/block', async (req, res) => {
   try {
     const user = await User.findById(req.userId).populate('blockedUsers', '_id username profile');
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json(user.blockedUsers || []);
+    // Filter nulls left by blocked accounts that were deleted before
+    // delete-account started pulling the deleted user from block lists
+    res.json((user.blockedUsers || []).filter(Boolean));
   } catch {
     res.status(500).json({ error: 'Failed to get blocked users' });
   }

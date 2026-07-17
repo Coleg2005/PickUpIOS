@@ -6,7 +6,8 @@ const GameSchema = new mongoose.Schema({
 
   name: {
     type: String,
-    required: true
+    required: true,
+    maxlength: 60
   },
   gameMembers: {
     type: [mongoose.Schema.Types.ObjectId],
@@ -36,7 +37,8 @@ const GameSchema = new mongoose.Schema({
     required: true
   },
   description: {
-    type: String
+    type: String,
+    maxlength: 500
   },
   maxPlayers: {
     type: Number,

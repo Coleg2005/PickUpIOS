@@ -23,6 +23,9 @@ export default function registerSocketHandlers(io) {
   });
 
   io.on('connection', (socket) => {
+    // Personal room so game broadcasts can exclude this user's sockets when
+    // they've blocked the sender (see the .except() below and messageRoutes)
+    socket.join(`user:${socket.userId}`);
 
     socket.on('join-game', async (gameId) => {
       try {
@@ -37,9 +40,16 @@ export default function registerSocketHandlers(io) {
         if (!data?.gameId || !data?.message || typeof data.message !== 'string' || data.message.length > 2000) return;
 
         // Sender identity comes from the verified token, never from the client payload
-        const game = await Game.findById(data.gameId).populate('gameMembers', 'pushTokens');
+        const game = await Game.findById(data.gameId).populate('gameMembers', 'pushTokens blockedUsers');
         const isMember = game && game.gameMembers.some((m) => m._id.toString() === socket.userId);
         if (!isMember) return;
+
+        // Members who blocked the sender get neither the live message nor a push
+        const blockers = new Set(
+          game.gameMembers
+            .filter((m) => (m.blockedUsers || []).some((b) => b.toString() === socket.userId))
+            .map((m) => m._id.toString())
+        );
 
         const sender = await User.findById(socket.userId, 'username');
         const messageDoc = {
@@ -54,9 +64,9 @@ export default function registerSocketHandlers(io) {
         // Save before emitting so clients receive the _id (needed for reporting)
         const message = new GameMessage(messageDoc);
         await message.save();
-        io.to(data.gameId).emit('new-message', message);
+        io.to(data.gameId).except([...blockers].map((id) => `user:${id}`)).emit('new-message', message);
 
-        const recipients = game.gameMembers.filter((m) => m._id.toString() !== socket.userId);
+        const recipients = game.gameMembers.filter((m) => m._id.toString() !== socket.userId && !blockers.has(m._id.toString()));
         const tokens = recipients.flatMap((m) => m.pushTokens || []);
         sendPushNotifications(tokens, messageDoc.username, messageDoc.message, { type: 'game-message', gameId: data.gameId });
       } catch (err) {

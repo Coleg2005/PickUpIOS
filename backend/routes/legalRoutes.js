@@ -81,6 +81,100 @@ router.get('/privacy', (req, res) => {
 
       <h2>Contact</h2>
       <p>Questions or requests: <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></p>
+
+      <p><a href="/terms">Terms of Service</a></p>
+    </div>
+  </body>
+</html>`);
+});
+
+// Public terms of service page: https://pickupiosbackend.me/terms
+// App Store guideline 1.2 requires UGC apps to publish terms with a
+// zero-tolerance policy for objectionable content, which users agree to at
+// sign-up (see the register screen).
+const TERMS_EFFECTIVE_DATE = 'July 15, 2026';
+
+router.get('/terms', (req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PickUp — Terms of Service</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; margin: 0; padding: 24px 16px; color: #333; line-height: 1.6; }
+      .card { background: white; border-radius: 16px; padding: 40px 32px; max-width: 720px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+      h1 { margin: 0 0 4px; font-size: 28px; color: #111; }
+      .date { color: #888; font-size: 14px; margin-bottom: 28px; }
+      h2 { font-size: 20px; color: #111; margin: 28px 0 8px; }
+      p, li { font-size: 15px; color: #444; }
+      ul { padding-left: 22px; }
+      a { color: #007AFF; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>PickUp Terms of Service</h1>
+      <div class="date">Effective ${TERMS_EFFECTIVE_DATE}</div>
+
+      <p>These terms govern your use of PickUp, a mobile app for finding and organizing pick-up sports games. By creating an account or using the app, you agree to these terms. If you do not agree, do not use the app.</p>
+
+      <h2>Eligibility and your account</h2>
+      <ul>
+        <li>You must be at least 13 years old to use PickUp.</li>
+        <li>You are responsible for your account and for keeping your password secure. Provide accurate information and do not impersonate anyone.</li>
+        <li>One account per person. Do not share, sell, or transfer your account.</li>
+      </ul>
+
+      <h2>Community rules — zero tolerance for objectionable content</h2>
+      <p>PickUp has a <strong>zero-tolerance policy for objectionable content and abusive behavior</strong>. You may not post, share, or send:</p>
+      <ul>
+        <li>Harassment, bullying, threats, or hate speech of any kind;</li>
+        <li>Sexually explicit, violent, or otherwise objectionable content;</li>
+        <li>Spam, scams, or misleading content;</li>
+        <li>Content that impersonates another person;</li>
+        <li>Other people's personal information without their consent;</li>
+        <li>Anything illegal, or that encourages illegal activity.</li>
+      </ul>
+      <p>Violations may result in content being removed and your account being suspended or permanently banned without notice.</p>
+
+      <h2>Moderation, reporting, and blocking</h2>
+      <ul>
+        <li>You can <strong>report</strong> any user, game, or message from within the app. We review reports and act on objectionable content, including removing content and ejecting the users responsible.</li>
+        <li>You can <strong>block</strong> any user at any time; blocked users cannot invite you to games, and their messages are hidden from you.</li>
+        <li>We may remove any content or restrict any account that we believe violates these terms or puts other users at risk.</li>
+      </ul>
+
+      <h2>Your content</h2>
+      <p>You keep ownership of the content you post (messages, games, profile information, photos). By posting it, you grant us a non-exclusive, royalty-free license to store, display, and transmit that content as needed to operate the app. You are solely responsible for the content you post.</p>
+
+      <h2>Physical activity and meeting other users</h2>
+      <p>PickUp helps people organize real-world sports games. <strong>You participate at your own risk.</strong></p>
+      <ul>
+        <li>Sports involve inherent risk of injury. You are responsible for judging your own fitness to participate and for playing safely.</li>
+        <li>We do not vet users, venues, or games, and we are not responsible for the conduct of any user, online or offline. Use common sense and caution when meeting people you met through the app.</li>
+        <li>Venue information is provided by third parties and may be inaccurate. Confirm that a venue is open, safe, and permitted for your use.</li>
+      </ul>
+
+      <h2>Acceptable use</h2>
+      <p>Do not attempt to disrupt or misuse the service — including probing or breaching security, scraping data, reverse engineering the app, sending automated requests, or interfering with other users' use of the app.</p>
+
+      <h2>Termination</h2>
+      <p>You can stop using PickUp at any time and delete your account in the app under Profile. We may suspend or terminate your account if you violate these terms. Sections that by their nature should survive termination (such as disclaimers and limitations of liability) survive.</p>
+
+      <h2>Disclaimers</h2>
+      <p>PickUp is provided "as is" and "as available," without warranties of any kind, express or implied. We do not guarantee that the app will be uninterrupted, error-free, or secure, or that any game will take place as listed.</p>
+
+      <h2>Limitation of liability</h2>
+      <p>To the maximum extent permitted by law, PickUp and its operator are not liable for any indirect, incidental, special, consequential, or punitive damages, or for any personal injury, property damage, or losses arising from your use of the app, your participation in any game, or your interactions with other users.</p>
+
+      <h2>Changes to these terms</h2>
+      <p>We may update these terms from time to time. If we make material changes, we will update this page and the effective date above. Continuing to use the app after changes take effect means you accept the updated terms.</p>
+
+      <h2>Contact</h2>
+      <p>Questions about these terms: <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></p>
+
+      <p><a href="/privacy">Privacy Policy</a></p>
     </div>
   </body>
 </html>`);

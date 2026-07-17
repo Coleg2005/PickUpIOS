@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, Alert, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { register } from '../../utils/api';
+import * as WebBrowser from 'expo-web-browser';
+import { register, API_BASE_URL } from '../../utils/api';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import AppButton from '@/components/AppButton';
 import { Radius, Spacing, FontSize } from '@/constants/Theme';
@@ -74,6 +75,25 @@ export default function RegisterScreen() {
         <TextInput style={inputStyle} placeholder="Password" placeholderTextColor={subtext} onChangeText={setPassword} value={password} secureTextEntry textContentType="newPassword" autoComplete="password-new" editable={!loading} />
 
         <AppButton title="Create Account" onPress={handleRegister} loading={loading} style={{ marginTop: Spacing.xs }} />
+
+        {/* Agreement to the ToS at sign-up is required for UGC apps (App Store guideline 1.2) */}
+        <Text style={{ fontFamily: 'DMSans_400Regular', color: subtext, textAlign: 'center', fontSize: FontSize.xs, marginTop: Spacing.md }}>
+          By creating an account you agree to our{' '}
+          <Text
+            style={{ fontFamily: 'DMSans_600SemiBold', color: primary }}
+            onPress={() => WebBrowser.openBrowserAsync(`${API_BASE_URL}/terms`)}
+          >
+            Terms of Service
+          </Text>
+          {' '}and{' '}
+          <Text
+            style={{ fontFamily: 'DMSans_600SemiBold', color: primary }}
+            onPress={() => WebBrowser.openBrowserAsync(`${API_BASE_URL}/privacy`)}
+          >
+            Privacy Policy
+          </Text>
+          .
+        </Text>
       </View>
 
       <TouchableOpacity onPress={() => router.replace('/(auth)/login')} style={{ marginTop: Spacing.lg }}>

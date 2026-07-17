@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import cloudinary from "../config/cloudinary.js";
+import cloudinary, { deleteImageByUrl } from "../config/cloudinary.js";
 import User from "../models/User.js";
 import { requireAuth } from "../middleware/auth.js";
 
@@ -67,8 +67,9 @@ router.post("/", requireAuth, upload.single("image"), async (req, res) => {
       return res.status(500).json({ error: "Cloudinary upload failed" });
     }
 
-    // Save new image URL
+    // Save new image URL, then delete the replaced image (fail-soft)
     await User.updateOne({ _id: user._id }, { $set: { 'profile.picture': result.secure_url } });
+    await deleteImageByUrl(user.profile?.picture);
 
     res.status(201).json({
       message: "Picture uploaded successfully",
