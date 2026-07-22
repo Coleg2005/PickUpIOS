@@ -8,8 +8,8 @@ const IS_PROD_APP = APP_ENV === 'production';
 
 export default {
   expo: {
-    name: IS_PROD_APP ? "PickUp2" : "PickUp2 (Dev)",
-    slug: "PickUp2",
+    name: IS_PROD_APP ? "PickUp" : "PickUp (Dev)",
+    slug: "PickUp",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -36,7 +36,7 @@ export default {
       package: IS_PROD_APP ? "me.pickupiosbackend.app" : "me.pickupiosbackend.app.dev",
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffffff"
+        backgroundColor: "#2C2C2E"
       },
       edgeToEdgeEnabled: true
     },
@@ -53,7 +53,7 @@ export default {
           image: "./assets/images/splash-icon.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#ffffff"
+          backgroundColor: "#2C2C2E"
         }
       ],
       "expo-web-browser",

@@ -54,6 +54,13 @@ export default function PlaceScreen() {
 
   const { locationID } = useLocalSearchParams();
 
+  // This screen is a hidden tab that stays mounted, so the initial
+  // useState capture of selectedSport goes stale. Re-sync whenever the
+  // selected sport or the viewed location changes.
+  React.useEffect(() => {
+    setGameSport(selectedSport || '');
+  }, [selectedSport, locationID]);
+
   const [placeName, setPlaceName] = useState<string>('');
   const [placeData, setPlaceData] = useState<any>(null);
 
