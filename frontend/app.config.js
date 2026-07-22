@@ -9,11 +9,15 @@ const IS_PROD_APP = APP_ENV === 'production';
 export default {
   expo: {
     name: IS_PROD_APP ? "PickUp" : "PickUp (Dev)",
-    slug: "PickUp",
+    // The slug is the project's identity on expo.dev (tied to
+    // extra.eas.projectId and the updates URL) — never user-visible.
+    // Renaming it breaks the EAS link; the display name above is the
+    // one that matters for branding.
+    slug: "PickUp2",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "pickup2",
+    scheme: "pickup",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
