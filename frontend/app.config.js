@@ -11,8 +11,9 @@ export default {
     name: IS_PROD_APP ? "PickUp" : "PickUp (Dev)",
     // The slug is the project's identity on expo.dev (tied to
     // extra.eas.projectId and the updates URL) — never user-visible.
-    // Renaming it breaks the EAS link; the display name above is the
-    // one that matters for branding.
+    // It must match whatever slug is registered for projectId below on
+    // expo.dev, or every `eas` command fails with a slug-mismatch error.
+    // The user-visible app name is controlled by `name` above, not this.
     slug: "PickUp2",
     version: "1.0.0",
     orientation: "portrait",

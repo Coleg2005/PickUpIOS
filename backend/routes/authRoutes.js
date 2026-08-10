@@ -52,10 +52,10 @@ const hashResetToken = (token) =>
 const IS_DEV = process.env.NODE_ENV !== 'production';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 // DEV:  exp://YOUR_LOCAL_IP:8081/--  (Expo Go)
-// PROD: pickup2:/
+// PROD: pickup:/  (must match the `scheme` in frontend/app.config.js)
 const DEEP_LINK_BASE = IS_DEV
   ? process.env.EXPO_GO_URL || 'exp://localhost:8081/--'
-  : 'pickup2:/';
+  : 'pickup:/';
 // ─────────────────────────────────────────────────────────────────────────────
 
 router.post('/register', async (req, res) => {
