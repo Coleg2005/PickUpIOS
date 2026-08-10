@@ -39,9 +39,13 @@ router.get('/:gameId', async (req, res) => {
 // POST a new message (members only, sender taken from the token)
 router.post('/', async (req, res) => {
   try {
-    const { gameId, message, messageType } = req.body;
+    const { gameId, message, messageType = 'text' } = req.body;
     if (!gameId || !message || typeof message !== 'string' || message.length > 2000) {
       return res.status(400).json({ error: 'gameId and a message under 2000 characters are required' });
+    }
+    // Schema requires messageType; an arbitrary value would 500 on save
+    if (!['text', 'system'].includes(messageType)) {
+      return res.status(400).json({ error: 'messageType must be text or system' });
     }
     const gameDoc = await Game.findById(gameId).populate('gameMembers', 'pushTokens blockedUsers');
     if (!gameDoc) return res.status(404).json({ error: 'Game not found' });

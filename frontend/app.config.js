@@ -8,12 +8,17 @@ const IS_PROD_APP = APP_ENV === 'production';
 
 export default {
   expo: {
-    name: IS_PROD_APP ? "PickUp2" : "PickUp2 (Dev)",
+    name: IS_PROD_APP ? "PickUp" : "PickUp (Dev)",
+    // The slug is the project's identity on expo.dev (tied to
+    // extra.eas.projectId and the updates URL) — never user-visible.
+    // It must match whatever slug is registered for projectId below on
+    // expo.dev, or every `eas` command fails with a slug-mismatch error.
+    // The user-visible app name is controlled by `name` above, not this.
     slug: "PickUp2",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "pickup2",
+    scheme: "pickup",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
@@ -36,7 +41,7 @@ export default {
       package: IS_PROD_APP ? "me.pickupiosbackend.app" : "me.pickupiosbackend.app.dev",
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffffff"
+        backgroundColor: "#2C2C2E"
       },
       edgeToEdgeEnabled: true
     },
@@ -53,7 +58,7 @@ export default {
           image: "./assets/images/splash-icon.png",
           imageWidth: 200,
           resizeMode: "contain",
-          backgroundColor: "#ffffff"
+          backgroundColor: "#2C2C2E"
         }
       ],
       "expo-web-browser",

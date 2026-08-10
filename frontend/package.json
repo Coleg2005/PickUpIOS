@@ -1,5 +1,5 @@
 {
-  "name": "pickup2",
+  "name": "pickup",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
