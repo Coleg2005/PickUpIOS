@@ -1,10 +1,12 @@
 // services/SocketService.ts
-import io, { Socket } from 'socket.io-client';
 import * as SecureStore from 'expo-secure-store';
+import io from 'socket.io-client';
 import { API_BASE_URL } from './api';
 
 class SocketService {
-  private socket: typeof Socket | null = null;
+  // The socket instance (client) — not the constructor type
+  // Use ReturnType<typeof io> to represent the client socket instance type
+  private socket: ReturnType<typeof io> | null = null;
   private gameId: string | null = null;
 
   connect(gameId: string) {

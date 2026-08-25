@@ -80,11 +80,11 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
   useEffect(() => {
     const socket = SocketService.connect(gameId);
 
-    socket.on('connect', () => {
+    socket?.on('connect', () => {
       setIsConnected(true);
     });
 
-    socket.on('disconnect', () => {
+    socket?.on('disconnect', () => {
       setIsConnected(false);
     });
 
