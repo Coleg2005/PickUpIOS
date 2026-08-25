@@ -38,7 +38,7 @@ export default function Profile() {
           if (decoded?._id) {
             const res = await getUser(decoded._id);
             setUser(res.user);
-            setPfpUrl(getPfp(decoded._id));
+            setPfpUrl(res.user?.profile?.picture ? getPfp(decoded._id) : null);
           }
         }
       } catch (error) {
