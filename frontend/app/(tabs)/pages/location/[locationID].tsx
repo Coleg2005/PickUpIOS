@@ -264,6 +264,7 @@ export default function PlaceScreen() {
                     value={gameDate}
                     mode="datetime"
                     display="spinner"
+                    themeVariant="dark"
                     onChange={(_, selectedDate) => {
                       if (selectedDate) setGameDate(selectedDate);
                     }}

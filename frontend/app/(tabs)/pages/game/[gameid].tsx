@@ -22,6 +22,15 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import { Radius, Spacing, FontSize } from '@/constants/Theme';
 
 export default function GameScreen() {
+  const { gameid } = useLocalSearchParams();
+  // Force a full remount whenever the game changes so a stale isMember from
+  // the previous game can never flash true for the new one (GameChat is a
+  // child, so its effects would otherwise run before this screen's own
+  // cleanup effects and fire a message fetch against the wrong game).
+  return <GameScreenContent key={Array.isArray(gameid) ? gameid[0] : gameid} />;
+}
+
+function GameScreenContent() {
   const router = useRouter();
 
   const { gameid } = useLocalSearchParams();
@@ -58,13 +67,18 @@ export default function GameScreen() {
     loadUser();
   }, []);
 
+  useEffect(() => {
+    setMembers([]);
+  }, [gameid]);
+
   useFocusEffect(
     React.useCallback(() => {
+      let cancelled = false;
       const fetchData = async () => {
         try {
           const gameId = Array.isArray(gameid) ? gameid[0] : gameid;
           const fetchedGame = await getGameId(gameId);
-          if (fetchedGame) {
+          if (fetchedGame && !cancelled) {
             setMembers(fetchedGame.gameMembers);
             setGameName(fetchedGame.name);
             setLeader(fetchedGame.leader);
@@ -80,6 +94,9 @@ export default function GameScreen() {
         }
       };
       fetchData();
+      return () => {
+        cancelled = true;
+      };
     }, [refreshFlag, gameid])
   );
 
@@ -132,6 +149,7 @@ export default function GameScreen() {
   return (
     <View style={{ flex: 1, backgroundColor }}>
       <Header />
+      <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ padding: Spacing.xl, gap: Spacing.lg, paddingBottom: bottomSpace + 120 }}>
 
         {/* Title + actions */}
@@ -261,6 +279,7 @@ export default function GameScreen() {
           username={members.find((member: any) => member._id === user._id)!.username}
         />
       )}
+      </View>
     </View>
   );
 }
