@@ -180,4 +180,47 @@ router.get('/terms', (req, res) => {
 </html>`);
 });
 
+// Public support page. App Store Connect requires a support URL: https://pickupiosbackend.me/support
+router.get('/support', (req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PickUp — Support</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f5; margin: 0; padding: 24px 16px; color: #333; line-height: 1.6; }
+      .card { background: white; border-radius: 16px; padding: 40px 32px; max-width: 720px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+      h1 { margin: 0 0 4px; font-size: 28px; color: #111; }
+      h2 { font-size: 20px; color: #111; margin: 28px 0 8px; }
+      p, li { font-size: 15px; color: #444; }
+      a { color: #007AFF; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>PickUp Support</h1>
+      <p>Welcome to the support page for PickUp, the app for finding and organizing pickup sports games near you.</p>
+
+      <h2>Contact</h2>
+      <p>Need help, found a bug, or have feedback? Email us at
+        <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>.
+      </p>
+
+      <h2>Frequently Asked Questions</h2>
+      <p><strong>How do I reset my password?</strong><br>
+      Use the "Forgot Password" link on the sign-in screen to receive a reset email.</p>
+
+      <p><strong>How do I report an issue with another user or game?</strong><br>
+      Use the report/block option available on a user's profile or within a game chat, or email us directly.</p>
+
+      <p><strong>How do I delete my account?</strong><br>
+      Go to Profile in the app and use the delete account option, or email us at the address above.</p>
+
+      <p><a href="/privacy">Privacy Policy</a> &middot; <a href="/terms">Terms of Service</a></p>
+    </div>
+  </body>
+</html>`);
+});
+
 export default router;
