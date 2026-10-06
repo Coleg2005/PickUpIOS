@@ -63,7 +63,7 @@ export const ThemePreferenceProvider = ({ children }: { children: React.ReactNod
       <Animated.View
         pointerEvents="none"
         style={[
-          StyleSheet.absoluteFillObject,
+          StyleSheet.absoluteFill,
           { backgroundColor: overlayColor, opacity: fade, zIndex: 9999, elevation: 9999 },
         ]}
       />

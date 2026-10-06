@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
+import { BottomTabBarHeightContext } from "expo-router/js-tabs";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getBlockedUsers, unblockUser, getPfp } from '@/utils/api';
 import { useThemeColor } from '@/hooks/useThemeColor';
