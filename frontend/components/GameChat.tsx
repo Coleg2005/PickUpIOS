@@ -1,6 +1,7 @@
 // imports 
 import { useBottomTabBarHeight } from "expo-router/js-tabs";
-import React, { useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from "expo-router/react-navigation";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -64,6 +65,8 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
   const flatListRef = useRef<FlatList>(null);
   // Ref so the socket message handler always sees the current blocked list
   const blockedIdsRef = useRef<string[]>([]);
+  // Message whose long-press fired; its action sheet opens once the finger lifts
+  const longPressedRef = useRef<Message | null>(null);
 
   useEffect(() => {
     const show = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -98,13 +101,6 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
 
     socket?.on('disconnect', () => {
       setIsConnected(false);
-    });
-
-    // Load initial messages and the blocked list (server already filters
-    // history; the list is used to filter live messages client-side)
-    loadMessages();
-    getBlockedUsers().then((blocked: any[]) => {
-      blockedIdsRef.current = (blocked || []).map((b: any) => b._id);
     });
 
     // Listen for new messages
@@ -146,6 +142,18 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
       SocketService.disconnect();
     };
   }, [gameId, userId]);
+
+  // Reload history and the blocked list whenever the screen regains focus, so
+  // blocking/unblocking someone from their profile applies to an open chat.
+  // The server filters history; the list filters live messages client-side.
+  useFocusEffect(
+    useCallback(() => {
+      getBlockedUsers().then((blocked: any[]) => {
+        blockedIdsRef.current = (blocked || []).map((b: any) => b._id);
+      });
+      loadMessages();
+    }, [gameId])
+  );
 
   // Scroll to bottom when chat becomes visible and messages are loaded
   useEffect(() => {
@@ -265,7 +273,15 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
       <TouchableOpacity
         activeOpacity={0.8}
         disabled={isOwnMessage}
-        onLongPress={() => handleMessageActions(item)}
+        // Opening the Alert mid-press leaves this row stuck "pressed" on iOS
+        // (the release goes to the Alert), so later presses on the same
+        // message are ignored. Wait for the release before showing actions.
+        onLongPress={() => { longPressedRef.current = item; }}
+        onPressOut={() => {
+          const pressed = longPressedRef.current;
+          longPressedRef.current = null;
+          if (pressed) handleMessageActions(pressed);
+        }}
         style={{
         marginVertical: 0,
         padding: 12,

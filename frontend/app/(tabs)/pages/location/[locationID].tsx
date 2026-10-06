@@ -265,9 +265,7 @@ export default function PlaceScreen() {
                     mode="datetime"
                     display="spinner"
                     themeVariant="dark"
-                    onChange={(_, selectedDate) => {
-                      if (selectedDate) setGameDate(selectedDate);
-                    }}
+                    onValueChange={(_, selectedDate) => setGameDate(selectedDate)}
                     style={{ backgroundColor: surface }}
                   />
                 </View>
