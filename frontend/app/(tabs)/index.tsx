@@ -1,6 +1,6 @@
 import { Text, TextInput, TouchableOpacity, View, ScrollView, ActivityIndicator, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import React, { useState, useEffect, useRef } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from "expo-router/react-navigation";
 import { Ionicons } from '@expo/vector-icons';
 
 import { Collapsible } from '@/components/Collapsible';

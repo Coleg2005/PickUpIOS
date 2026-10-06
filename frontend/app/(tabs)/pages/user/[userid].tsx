@@ -11,7 +11,7 @@ import { Radius, Spacing, FontSize } from '@/constants/Theme';
 
 import { useLocalSearchParams } from 'expo-router';
 import { getUser, requestFriend, removeFriend, getPfp, getNotifications, blockUser, unblockUser } from '@/utils/api';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from "expo-router/react-navigation";
 import { jwtDecode } from 'jwt-decode';
 import * as SecureStore from 'expo-secure-store';
 

@@ -1,5 +1,5 @@
 // imports 
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useBottomTabBarHeight } from "expo-router/js-tabs";
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,

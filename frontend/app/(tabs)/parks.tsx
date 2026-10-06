@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { StyleSheet, TouchableOpacity, Text, TextInput, View, ScrollView, ActivityIndicator, Keyboard, TouchableWithoutFeedback } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from "expo-router/react-navigation";
 import { Dropdown } from 'react-native-element-dropdown';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
