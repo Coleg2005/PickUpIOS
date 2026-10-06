@@ -6,6 +6,7 @@ import Game from '../models/Game.js';
 import GameMessage from '../models/GameMessage.js';
 import Notification from '../models/Notification.js';
 import { requireAuth, requireModerator } from '../middleware/auth.js';
+import { deleteGameData } from '../utils/cleanup.js';
 
 const router = express.Router();
 
@@ -252,8 +253,7 @@ admin.delete('/game/:gameId', async (req, res) => {
     if (!isValidId(gameId)) return res.status(400).json({ error: 'Invalid game id' });
     const deleted = await Game.findByIdAndDelete(gameId);
     if (!deleted) return res.status(404).json({ error: 'Game not found' });
-    await GameMessage.deleteMany({ gameId });
-    await Notification.deleteMany({ object: gameId });
+    await deleteGameData([deleted._id]);
     res.json({ message: 'Game deleted' });
   } catch {
     res.status(500).json({ error: 'Failed to delete game' });

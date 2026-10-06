@@ -72,6 +72,14 @@ router.patch('/accept', async (req, res) => {
 
     await User.updateOne({ _id: user._id }, { $addToSet: { friends: friend._id } });
     await User.updateOne({ _id: friend._id }, { $addToSet: { friends: user._id } });
+    // Clear the request, plus the reverse one if both sent requests
+    await Notification.deleteMany({
+      type: 'friend-request',
+      $or: [
+        { recipient: user._id, object: friend._id },
+        { recipient: friend._id, object: user._id },
+      ],
+    });
 
     sendPushNotifications(friend.pushTokens, 'Friend Request Accepted', `${user.username} accepted your friend request`, { type: 'friend-accepted' });
     res.json({ message: 'Friend request accepted' });

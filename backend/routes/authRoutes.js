@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import { requireAuth, SECRET } from '../middleware/auth.js';
 import { deleteImageByUrl } from '../config/cloudinary.js';
+import { deleteGameData } from '../utils/cleanup.js';
 const router = express.Router();
 
 const TOKEN_EXPIRY = '7d';
@@ -398,7 +399,7 @@ router.delete('/delete-account', requireAuth, async (req, res) => {
     const ledGames = await Game.find({ leader: userId }, '_id');
     const ledGameIds = ledGames.map(g => g._id);
     await Game.deleteMany({ leader: userId });
-    await GameMessage.deleteMany({ gameId: { $in: ledGameIds } });
+    await deleteGameData(ledGameIds);
 
     // Remove user from games they were a member of
     await Game.updateMany({ gameMembers: userId }, { $pull: { gameMembers: userId } });
