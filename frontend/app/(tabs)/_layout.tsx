@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React, { useState, createContext, useContext } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, View, type ColorValue } from 'react-native';
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
@@ -22,15 +22,15 @@ export const useSettings = () => {
   return context;
 };
 
-function HomeTabBarIcon({ color }: { readonly color: string }) {
+function HomeTabBarIcon({ color }: { readonly color: ColorValue }) {
   return <IconSymbol size={28} name="house.fill" color={color} />;
 }
 
-function ParksTabBarIcon({ color }: { readonly color: string }) {
+function ParksTabBarIcon({ color }: { readonly color: ColorValue }) {
   return <IconSymbol size={28} name="soccerball" color={color} />;
 }
 
-function AboutTabBarIcon({ color }: { readonly color: string }) {
+function AboutTabBarIcon({ color }: { readonly color: ColorValue }) {
   return <IconSymbol size={28} name="person" color={color} />;
 }
 
