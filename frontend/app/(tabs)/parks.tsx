@@ -26,6 +26,17 @@ export async function getUserCoordinates() {
   return { latitude: location.coords.latitude, longitude: location.coords.longitude };
 }
 
+const MILES_PER_METER = 1 / 1609;
+
+// Straight-line distance in miles between two lat/lon points (haversine)
+function distanceMiles(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }) {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b.latitude - a.latitude);
+  const dLon = toRad(b.longitude - a.longitude);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.latitude)) * Math.cos(toRad(b.latitude)) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371000 * Math.asin(Math.sqrt(h)) * MILES_PER_METER;
+}
+
 const SPORT_ITEMS = [
   { label: 'Basketball', value: 'basketball%20court' },
   { label: 'Baseball',   value: 'baseball%20field' },
@@ -63,6 +74,7 @@ export default function ParksScreen() {
   const { setSelectedSport } = useSearchStore();
   const mapRef = useRef<MapView>(null);
   const venueSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const radiusTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [places, setPlaces] = useState<any[]>([]);
@@ -70,6 +82,8 @@ export default function ParksScreen() {
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [sport, setSport] = useState('soccer%20field');
   const [radius, setRadius] = useState(15);
+  // What's typed in the radius box; can be empty mid-edit without changing radius
+  const [radiusText, setRadiusText] = useState('15');
   const [filterQuery, setFilterQuery] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -89,7 +103,8 @@ export default function ParksScreen() {
           setUserCoords(coords);
 
           const results = await searchPlaces({
-            query: sport,
+            // Sport values are stored URL-encoded; searchPlaces encodes again
+            query: decodeURIComponent(sport),
             ll: `${coords.latitude},${coords.longitude}`,
             radius: radius * 1609,
             limit: 50,
@@ -104,7 +119,8 @@ export default function ParksScreen() {
             ? await getGamesByLocations([...sportIds])
             : {};
 
-          // Find any venues with games not in the sport results (e.g. custom venues)
+          // Find any venues with games not in the sport results (e.g. custom venues).
+          // Active locations span every user everywhere, so keep only ones inside the radius.
           const allGameIds = await getActiveLocations();
           const missingIds = allGameIds.filter((id: string) => !sportIds.has(id));
 
@@ -116,7 +132,10 @@ export default function ParksScreen() {
             const extraPlaces = await Promise.all(
               missingIds.map((id: string) => getPlace(id).catch(() => null))
             );
-            allPlaces = [...sportPlaces, ...extraPlaces.filter(Boolean)];
+            const nearbyExtras = extraPlaces.filter((p: any) =>
+              p?.latitude != null && p?.longitude != null && distanceMiles(coords, p) <= radius
+            );
+            allPlaces = [...sportPlaces, ...nearbyExtras];
           }
 
           if (isActive) {
@@ -282,8 +301,23 @@ export default function ParksScreen() {
         <View style={{ flex: 1 }}>
           <Text style={{ fontFamily: 'DMSans_500Medium', fontSize: FontSize.xs, color: subtext, marginBottom: 4 }}>Radius (mi)</Text>
           <TextInput
-            value={radius.toString()}
-            onChangeText={text => { const v = Math.max(1, Math.min(Number(text) || 1, 50)); setRadius(v); }}
+            value={radiusText}
+            onChangeText={text => {
+              const digits = text.replace(/[^0-9]/g, '');
+              const v = Number(digits);
+              if (radiusTimeout.current) clearTimeout(radiusTimeout.current);
+              if (!digits || v < 1) { setRadiusText(digits); return; }
+              const clamped = Math.min(v, 50);
+              setRadiusText(String(clamped));
+              // Wait for typing to pause so "25" searches once, not at 2 then 25
+              radiusTimeout.current = setTimeout(() => setRadius(clamped), 500);
+            }}
+            onBlur={() => {
+              if (radiusTimeout.current) clearTimeout(radiusTimeout.current);
+              const v = Number(radiusText);
+              if (radiusText && v >= 1) setRadius(Math.min(v, 50));
+              else setRadiusText(radius.toString());
+            }}
             keyboardType="numeric"
             style={{ borderWidth: 1, borderRadius: Radius.md, padding: Spacing.sm, borderColor, color: textColor, fontFamily: 'DMSans_400Regular', backgroundColor: surface }}
           />
