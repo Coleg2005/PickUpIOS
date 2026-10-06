@@ -101,6 +101,16 @@ const Inbox = () => {
           notifications.map((item) => {
             if (item.type === 'friend-request') {
               const friend = item.object;
+              if (!friend) {
+                return (
+                  <View key={item._id} style={{ backgroundColor: surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: cardBorder, padding: Spacing.md, gap: Spacing.md }}>
+                    <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: FontSize.sm, color: subtext }}>
+                      This friend request is no longer available.
+                    </Text>
+                    <AppButton title="Dismiss" onPress={() => reject(item._id)} variant="secondary" />
+                  </View>
+                );
+              }
               return (
                 <View key={item._id} style={{ backgroundColor: surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: cardBorder, padding: Spacing.md, gap: Spacing.md }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
@@ -120,6 +130,16 @@ const Inbox = () => {
 
             if (item.type === 'upcoming-game') {
               const game = item.object;
+              if (!game) {
+                return (
+                  <View key={item._id} style={{ backgroundColor: surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: cardBorder, padding: Spacing.md, gap: Spacing.md }}>
+                    <Text style={{ fontFamily: 'DMSans_400Regular', fontSize: FontSize.sm, color: subtext }}>
+                      This game is no longer available.
+                    </Text>
+                    <AppButton title="Dismiss" onPress={() => reject(item._id)} variant="secondary" />
+                  </View>
+                );
+              }
               return (
                 <View key={item._id} style={{ backgroundColor: surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: cardBorder, padding: Spacing.md, gap: Spacing.md }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
