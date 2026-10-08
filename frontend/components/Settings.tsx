@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, StatusBar, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, StatusBar, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
@@ -11,7 +11,9 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BlockedUsersList from '@/components/BlockedUsersList';
 
-const { width } = Dimensions.get('window');
+// Slides the panel fully offscreen; larger than any phone width so it works
+// without measuring the screen.
+const OFFSCREEN_X = 600;
 const STATUS_BAR_HEIGHT = StatusBar.currentHeight || 44;
 const SUPPORT_EMAIL = 'cole.garrison.005@gmail.com';
 
@@ -24,7 +26,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [blockedVisible, setBlockedVisible] = React.useState(false);
-  const translateX = React.useRef(new Animated.Value(width)).current;
+  const translateX = React.useRef(new Animated.Value(OFFSCREEN_X)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.95)).current;
   
@@ -57,7 +59,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
     } else {
       Animated.parallel([
         Animated.timing(translateX, {
-          toValue: width,
+          toValue: OFFSCREEN_X,
           duration: 300,
           useNativeDriver: true,
         }),
@@ -141,7 +143,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
     <Animated.View
       pointerEvents={visible ? 'auto' : 'none'}
       style={[
-        StyleSheet.absoluteFillObject,
+        StyleSheet.absoluteFill,
         styles.overlay,
         { opacity: fadeAnim }
       ]}
@@ -152,7 +154,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
         onPress={onClose}
         activeOpacity={1}
       >
-        <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
+        <BlurView intensity={20} style={StyleSheet.absoluteFill} />
       </TouchableOpacity>
 
       {/* Settings Panel; slides in from the right */}
@@ -161,7 +163,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
           styles.panel,
           {
             backgroundColor,
-            width: width * 0.75,
+            width: '75%',
             transform: [{ translateX }, { scale: scaleAnim }],
             paddingTop: STATUS_BAR_HEIGHT + 20,
           },
@@ -278,7 +280,7 @@ const Settings: React.FC<SettingsProps> = ({ visible, onClose }) => {
     </Animated.View>
 
     {blockedVisible && (
-      <View style={[StyleSheet.absoluteFillObject, { zIndex: 1001 }]}>
+      <View style={[StyleSheet.absoluteFill, { zIndex: 1001 }]}>
         <BlockedUsersList onClose={() => setBlockedVisible(false)} />
       </View>
     )}
@@ -291,7 +293,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
   panel: {

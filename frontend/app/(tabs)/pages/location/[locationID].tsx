@@ -5,8 +5,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from "expo-router/react-navigation";
+import { useBottomTabBarHeight } from "expo-router/js-tabs";
 import * as SecureStore from 'expo-secure-store';
 import { jwtDecode } from 'jwt-decode';
 
@@ -264,9 +264,8 @@ export default function PlaceScreen() {
                     value={gameDate}
                     mode="datetime"
                     display="spinner"
-                    onChange={(_, selectedDate) => {
-                      if (selectedDate) setGameDate(selectedDate);
-                    }}
+                    themeVariant="dark"
+                    onValueChange={(_, selectedDate) => setGameDate(selectedDate)}
                     style={{ backgroundColor: surface }}
                   />
                 </View>

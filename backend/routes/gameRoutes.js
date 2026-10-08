@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import Game from '../models/Game.js'
 import Notification from '../models/Notification.js';
 import { sendPushNotifications } from '../utils/push.js';
+import { deleteGameData } from '../utils/cleanup.js';
 import { requireAuth } from '../middleware/auth.js';
 const router = express.Router();
 
@@ -233,6 +234,7 @@ router.delete('/:gameid', async (req, res) => {
       return res.status(403).json({ error: 'Only the game leader can delete the game' });
     }
     await game.deleteOne();
+    await deleteGameData([game._id]);
     res.json({ message: 'Game deleted successfully' });
   } catch (error) {
     console.error('Delete game error:', error);
@@ -368,6 +370,8 @@ router.patch('/member', async (req, res) => {
 
     game.gameMembers.push(member._id);
     await game.save();
+    // Any pending invites to this game are now moot
+    await Notification.deleteMany({ recipient: member._id, type: 'game-invite', object: game._id });
     res.json({ message: 'Game member added successfully' });
   } catch (error) {
     console.error('Add game member error:', error);

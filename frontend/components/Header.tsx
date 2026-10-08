@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from "expo-router/react-navigation";
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSettings } from '@/app/(tabs)/_layout';
+import { useNavHistory } from '@/context/NavHistoryContext';
 import { Colors } from '@/constants/Colors';
 import { FontSize, FontWeight, Spacing } from '@/constants/Theme';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -19,6 +20,7 @@ const Header = () => {
   const [username, setUsername] = useState<string | null>(null);
   const [hasNotif, setHasNotif] = useState<boolean>(false);
   const router = useRouter();
+  const { canGoBack, goBack } = useNavHistory();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -44,9 +46,18 @@ const Header = () => {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.surface, borderBottomColor: colors.cardBorder }]}>
-      <Text style={[styles.logo, { color: colors.primary, fontFamily: 'DMSans_700Bold' }]}>
-        PickUp
-      </Text>
+      {/* Pages outside the tab bar get a back arrow in place of the logo */}
+      {canGoBack ? (
+        <View style={styles.left}>
+          <TouchableOpacity onPress={goBack} style={styles.iconBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back">
+            <Ionicons name="chevron-back" size={26} color={colors.icon} />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <Text style={[styles.logo, { color: colors.primary, fontFamily: 'DMSans_700Bold' }]}>
+          PickUp
+        </Text>
+      )}
 
       <Text numberOfLines={1} style={[styles.username, { color: colors.text, fontFamily: 'DMSans_600SemiBold' }]}>
         {username ?? ''}
@@ -75,6 +86,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.sm,
     borderBottomWidth: 1,
+  },
+  left: {
+    width: 80,
+    alignItems: 'flex-start',
   },
   logo: {
     fontSize: FontSize.xl,

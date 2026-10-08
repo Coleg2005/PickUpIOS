@@ -6,12 +6,38 @@ import Game from '../models/Game.js';
 import GameMessage from '../models/GameMessage.js';
 import Notification from '../models/Notification.js';
 import { requireAuth, requireModerator } from '../middleware/auth.js';
+import { deleteGameData } from '../utils/cleanup.js';
+import { transporter } from '../utils/mailer.js';
 
 const router = express.Router();
 
 router.use(requireAuth);
 
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+
+const REPORT_ALERT_EMAIL = process.env.REPORT_ALERT_EMAIL || 'cole.garrison.005@gmail.com';
+
+// Email the moderator so new reports get reviewed promptly. Plain text only,
+// since the snapshot and details are user-written.
+const sendReportAlert = async (report, reportedUsername) => {
+  const reporter = await User.findById(report.reporter, 'username');
+  const lines = [
+    `Type: ${report.contentType}`,
+    `Reason: ${report.reason}`,
+    `Reported user: ${reportedUsername} (${report.reportedUser})`,
+    `Reported by: ${reporter?.username || 'unknown'} (${report.reporter})`,
+    ...(report.contentSnapshot ? [`Content: ${report.contentSnapshot}`] : []),
+    ...(report.details ? [`Details: ${report.details}`] : []),
+    '',
+    'Review it in the app under Profile → Moderation.',
+  ];
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to: REPORT_ALERT_EMAIL,
+    subject: `New PickUp report: ${report.reason} (${report.contentType})`,
+    text: lines.join('\n'),
+  });
+};
 
 // ─── Reporting ───────────────────────────────────────────────────────────────
 
@@ -61,7 +87,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'You cannot report yourself' });
     }
 
-    const target = await User.findById(targetUserId, '_id');
+    const target = await User.findById(targetUserId, '_id username');
     if (!target) return res.status(404).json({ error: 'Reported user not found' });
 
     // One open report per reporter per target/content
@@ -86,6 +112,8 @@ router.post('/', async (req, res) => {
       details: details || '',
     });
     await report.save();
+    // Don't hold up (or fail) the report on email delivery
+    sendReportAlert(report, target.username).catch((err) => console.error('Report alert email error:', err));
 
     res.status(201).json({ message: 'Report submitted. Our moderators will review it.' });
   } catch (err) {
@@ -252,8 +280,7 @@ admin.delete('/game/:gameId', async (req, res) => {
     if (!isValidId(gameId)) return res.status(400).json({ error: 'Invalid game id' });
     const deleted = await Game.findByIdAndDelete(gameId);
     if (!deleted) return res.status(404).json({ error: 'Game not found' });
-    await GameMessage.deleteMany({ gameId });
-    await Notification.deleteMany({ object: gameId });
+    await deleteGameData([deleted._id]);
     res.json({ message: 'Game deleted' });
   } catch {
     res.status(500).json({ error: 'Failed to delete game' });

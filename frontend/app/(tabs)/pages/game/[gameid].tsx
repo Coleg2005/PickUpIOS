@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Text, TouchableOpacity, View, ScrollView, Alert } from 'react-native';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from "expo-router/react-navigation";
+import { useBottomTabBarHeight } from "expo-router/js-tabs";
 import * as SecureStore from 'expo-secure-store';
 import { jwtDecode } from 'jwt-decode';
 import { Ionicons } from '@expo/vector-icons';
 
 import Header from '@/components/Header';
+import { useNavHistory } from '@/context/NavHistoryContext';
 import Avatar from '@/components/Avatar';
 import AppButton from '@/components/AppButton';
 import GameChat from '@/components/GameChat';
@@ -22,7 +23,17 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import { Radius, Spacing, FontSize } from '@/constants/Theme';
 
 export default function GameScreen() {
+  const { gameid } = useLocalSearchParams();
+  // Force a full remount whenever the game changes so a stale isMember from
+  // the previous game can never flash true for the new one (GameChat is a
+  // child, so its effects would otherwise run before this screen's own
+  // cleanup effects and fire a message fetch against the wrong game).
+  return <GameScreenContent key={Array.isArray(gameid) ? gameid[0] : gameid} />;
+}
+
+function GameScreenContent() {
   const router = useRouter();
+  const { goBack } = useNavHistory();
 
   const { gameid } = useLocalSearchParams();
 
@@ -58,13 +69,18 @@ export default function GameScreen() {
     loadUser();
   }, []);
 
+  useEffect(() => {
+    setMembers([]);
+  }, [gameid]);
+
   useFocusEffect(
     React.useCallback(() => {
+      let cancelled = false;
       const fetchData = async () => {
         try {
           const gameId = Array.isArray(gameid) ? gameid[0] : gameid;
           const fetchedGame = await getGameId(gameId);
-          if (fetchedGame) {
+          if (fetchedGame && !cancelled) {
             setMembers(fetchedGame.gameMembers);
             setGameName(fetchedGame.name);
             setLeader(fetchedGame.leader);
@@ -80,6 +96,9 @@ export default function GameScreen() {
         }
       };
       fetchData();
+      return () => {
+        cancelled = true;
+      };
     }, [refreshFlag, gameid])
   );
 
@@ -105,7 +124,7 @@ export default function GameScreen() {
           style: 'destructive',
           onPress: async () => {
             await deleteGame(gameId);
-            router.back();
+            goBack();
           },
         },
       ]);
@@ -132,6 +151,7 @@ export default function GameScreen() {
   return (
     <View style={{ flex: 1, backgroundColor }}>
       <Header />
+      <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ padding: Spacing.xl, gap: Spacing.lg, paddingBottom: bottomSpace + 120 }}>
 
         {/* Title + actions */}
@@ -261,6 +281,7 @@ export default function GameScreen() {
           username={members.find((member: any) => member._id === user._id)!.username}
         />
       )}
+      </View>
     </View>
   );
 }

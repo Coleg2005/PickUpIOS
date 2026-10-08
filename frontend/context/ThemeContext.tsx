@@ -7,6 +7,11 @@ export type ThemePreference = 'light' | 'dark' | 'system';
 
 const STORAGE_KEY = 'themePreference';
 
+// React Native can report 'unspecified' (or null) as the system scheme;
+// the app only has light and dark palettes, so treat anything else as light.
+const toScheme = (scheme: string | null | undefined): 'light' | 'dark' =>
+  scheme === 'dark' ? 'dark' : 'light';
+
 const ThemePreferenceContext = createContext<{
   preference: ThemePreference;
   setPreference: (p: ThemePreference) => void;
@@ -14,7 +19,7 @@ const ThemePreferenceContext = createContext<{
 } | null>(null);
 
 export const ThemePreferenceProvider = ({ children }: { children: React.ReactNode }) => {
-  const systemScheme = useSystemColorScheme() ?? 'light';
+  const systemScheme = toScheme(useSystemColorScheme());
   const [preference, setPreferenceState] = useState<ThemePreference>('system');
 
   // Dip-to-background fade: cover the screen in the target theme's background
@@ -63,7 +68,7 @@ export const ThemePreferenceProvider = ({ children }: { children: React.ReactNod
       <Animated.View
         pointerEvents="none"
         style={[
-          StyleSheet.absoluteFillObject,
+          StyleSheet.absoluteFill,
           { backgroundColor: overlayColor, opacity: fade, zIndex: 9999, elevation: 9999 },
         ]}
       />
@@ -83,5 +88,5 @@ export const useThemePreference = () => {
 export const useOverriddenColorScheme = () => {
   const ctx = useContext(ThemePreferenceContext);
   const system = useSystemColorScheme();
-  return ctx ? ctx.colorScheme : system;
+  return ctx ? ctx.colorScheme : toScheme(system);
 };

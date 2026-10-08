@@ -8,9 +8,10 @@ import Notification from '../models/Notification.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
+import { transporter } from '../utils/mailer.js';
 import { requireAuth, SECRET } from '../middleware/auth.js';
 import { deleteImageByUrl } from '../config/cloudinary.js';
+import { deleteGameData } from '../utils/cleanup.js';
 const router = express.Router();
 
 const TOKEN_EXPIRY = '7d';
@@ -27,17 +28,6 @@ const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // "Cole" can log in as "cole" and nobody can register a look-alike name.
 const usernameFilter = (username) => ({
   username: { $regex: `^${escapeRegex(username)}$`, $options: 'i' },
-});
-
-// Email service setup (configure with your email provider)
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: process.env.EMAIL_PORT || 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
 });
 
 const RESET_TOKEN_EXPIRY = 15 * 60 * 1000; // 15 minutes
@@ -200,7 +190,7 @@ router.post('/forgot-password', async (req, res) => {
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: email,
-      subject: 'Password Reset Request',
+      subject: 'PickUp - Reset Your Password',
       html: `
         <h2>Password Reset Request</h2>
         <p>You requested a password reset. Click the button below to reset your password:</p>
@@ -398,7 +388,7 @@ router.delete('/delete-account', requireAuth, async (req, res) => {
     const ledGames = await Game.find({ leader: userId }, '_id');
     const ledGameIds = ledGames.map(g => g._id);
     await Game.deleteMany({ leader: userId });
-    await GameMessage.deleteMany({ gameId: { $in: ledGameIds } });
+    await deleteGameData(ledGameIds);
 
     // Remove user from games they were a member of
     await Game.updateMany({ gameMembers: userId }, { $pull: { gameMembers: userId } });

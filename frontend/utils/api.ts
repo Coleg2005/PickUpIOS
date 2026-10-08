@@ -243,6 +243,11 @@ export const removeFriend = (friendid: string) =>
   withAlert('Remove Friend Failed', null, () =>
     apiFetch('/friend/remove', { method: 'PATCH', body: { friendid } }));
 
+export type FriendStatus = 'friends' | 'outgoing' | 'incoming' | 'none';
+
+export const getFriendStatus = (userid: string): Promise<{ status: FriendStatus } | null> =>
+  withAlert('Get Friend Status Failed', null, () => apiFetch(`/friend/status/${userid}`));
+
 export const getFriends = (userid: string) =>
   withAlert('Get Friends Failed', [], () => apiFetch(`/friend/${userid}`));
 

@@ -1,22 +1,23 @@
 // imports 
-import React, { useState, useEffect, useRef } from 'react';
+import { useBottomTabBarHeight } from "expo-router/js-tabs";
+import { useFocusEffect } from "expo-router/react-navigation";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View,
+  Alert,
+  Animated,
+  FlatList,
+  Keyboard,
+  Platform,
   Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-  Alert
+  View
 } from 'react-native';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
-import SocketService from '@/utils/socket';
 import ReportModal from '@/components/ReportModal';
+import SocketService from '@/utils/socket';
 
-import { getMessagesForGame, getBlockedUsers, blockUser } from '@/utils/api';
+import { blockUser, getBlockedUsers, getMessagesForGame } from '@/utils/api';
 
 import { useThemeColor } from '@/hooks/useThemeColor';
 
@@ -59,22 +60,36 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
   const [inputText, setInputText] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [reportedMessage, setReportedMessage] = useState<Message | null>(null);
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
   // Ref so the socket message handler always sees the current blocked list
   const blockedIdsRef = useRef<string[]>([]);
+  // Message whose long-press fired; its action sheet opens once the finger lifts
+  const longPressedRef = useRef<Message | null>(null);
 
   useEffect(() => {
     const show = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hide = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const showSub = Keyboard.addListener(show, () => setKeyboardOpen(true));
-    const hideSub = Keyboard.addListener(hide, () => setKeyboardOpen(false));
+    const showSub = Keyboard.addListener(show, (e) => {
+      Animated.timing(keyboardOffset, {
+        toValue: Math.max(e.endCoordinates.height - bottomSpace, 0),
+        duration: e.duration || 250,
+        useNativeDriver: false,
+      }).start();
+    });
+    const hideSub = Keyboard.addListener(hide, (e) => {
+      Animated.timing(keyboardOffset, {
+        toValue: 0,
+        duration: e.duration || 250,
+        useNativeDriver: false,
+      }).start();
+    });
     return () => {
       showSub.remove();
       hideSub.remove();
     };
-  }, []);
+  }, [bottomSpace]);
 
   // socket
   useEffect(() => {
@@ -86,13 +101,6 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
 
     socket?.on('disconnect', () => {
       setIsConnected(false);
-    });
-
-    // Load initial messages and the blocked list (server already filters
-    // history; the list is used to filter live messages client-side)
-    loadMessages();
-    getBlockedUsers().then((blocked: any[]) => {
-      blockedIdsRef.current = (blocked || []).map((b: any) => b._id);
     });
 
     // Listen for new messages
@@ -134,6 +142,18 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
       SocketService.disconnect();
     };
   }, [gameId, userId]);
+
+  // Reload history and the blocked list whenever the screen regains focus, so
+  // blocking/unblocking someone from their profile applies to an open chat.
+  // The server filters history; the list filters live messages client-side.
+  useFocusEffect(
+    useCallback(() => {
+      getBlockedUsers().then((blocked: any[]) => {
+        blockedIdsRef.current = (blocked || []).map((b: any) => b._id);
+      });
+      loadMessages();
+    }, [gameId])
+  );
 
   // Scroll to bottom when chat becomes visible and messages are loaded
   useEffect(() => {
@@ -253,7 +273,15 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
       <TouchableOpacity
         activeOpacity={0.8}
         disabled={isOwnMessage}
-        onLongPress={() => handleMessageActions(item)}
+        // Opening the Alert mid-press leaves this row stuck "pressed" on iOS
+        // (the release goes to the Alert), so later presses on the same
+        // message are ignored. Wait for the release before showing actions.
+        onLongPress={() => { longPressedRef.current = item; }}
+        onPressOut={() => {
+          const pressed = longPressedRef.current;
+          longPressedRef.current = null;
+          if (pressed) handleMessageActions(pressed);
+        }}
         style={{
         marginVertical: 0,
         padding: 12,
@@ -296,13 +324,15 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
           position: 'absolute',
           left: 0,
           right: 0,
-          bottom: 0,
+          bottom: bottomSpace,
           alignItems: 'center',
           zIndex: 1000,
           padding: 8,
+          elevation: 10,
         }}
         onPress={() => setIsVisible(true)}
         activeOpacity={0.7}
+        hitSlop={8}
       >
         <View style={{
           backgroundColor: surface,
@@ -316,7 +346,6 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
           shadowColor: '#000',
           shadowOpacity: 0.1,
           shadowRadius: 4,
-          bottom: bottomSpace
         }}>
           <Text style={{ fontSize: 20, color: subtext }}>▲</Text>
           <Text style={{ marginLeft: 8, color: textColor, fontFamily: 'DMSans_600SemiBold' }}>Show Chat</Text>
@@ -326,9 +355,17 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: backgroundColor }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <View
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: bottomSpace,
+        backgroundColor: backgroundColor,
+        zIndex: 1000,
+        elevation: 10,
+      }}
     >
       <View style={{ flex: 1, backgroundColor: backgroundColor, borderColor: cardBorderColor }}>
         <TouchableOpacity
@@ -339,8 +376,7 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
             paddingHorizontal: 16,
             paddingTop: 16,
             paddingBottom: 8,
-            bottom: bottomSpace, 
-            backgroundColor: backgroundColor, 
+            backgroundColor: backgroundColor,
             borderTopWidth: 1, 
             borderBottomWidth: 1, 
             borderTopColor: cardBorderColor,
@@ -367,24 +403,20 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
           data={getMessagesWithDateSeparators(messages)}
           keyExtractor={(item) => item._id}
           renderItem={renderMessage}
-          style={{ flex: 1, backgroundColor: backgroundColor, minHeight: 120, borderColor: cardBorderColor, bottom: bottomSpace }}
+          style={{ flex: 1, backgroundColor: backgroundColor, minHeight: 120, borderColor: cardBorderColor }}
           contentContainerStyle={{ padding: 8, flexGrow: 1, justifyContent: 'flex-end' }}
           onContentSizeChange={scrollToBottom}
         />
 
-        <View style={{
+        <Animated.View style={{
           flexDirection: 'row',
           paddingBottom: 6,
+          marginBottom: keyboardOffset,
           borderTopWidth: 1,
           borderTopColor: cardBorderColor,
           alignItems: 'flex-end',
           minHeight: 48,
           backgroundColor: cardBackgroundColor,
-          left: 0,
-          right: 0,
-          ...(keyboardOpen
-            ? { position: 'absolute', bottom: 0 }
-            : { bottom: bottomSpace })
         }}>
           <TextInput
             style={{
@@ -419,7 +451,7 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
           >
             <Text style={{ color: '#fff', fontFamily: 'DMSans_600SemiBold' }}>Send</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </View>
 
       <ReportModal
@@ -429,7 +461,7 @@ const GameChat: React.FC<GameChatProps> = ({ gameId, userId, username }) => {
         contentId={reportedMessage?._id}
         targetName={reportedMessage?.username}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 

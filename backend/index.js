@@ -28,6 +28,7 @@ import inboxRoutes from './routes/inboxRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import legalRoutes from './routes/legalRoutes.js';
 import { startRecurrenceJob } from './utils/recurrence.js';
+import { startCleanupJob } from './utils/cleanup.js';
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
@@ -144,6 +145,7 @@ mongoose.connect(mongoURI)
   .then(() => {
     console.log('Connected to MongoDB');
     startRecurrenceJob();
+    startCleanupJob();
   })
   .catch(err => {
     console.error('MongoDB connection error:', err);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useBottomTabBarHeight } from "expo-router/js-tabs";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getFriends, removeFriend, getPfp } from '@/utils/api';
 import { useThemeColor } from '@/hooks/useThemeColor';
