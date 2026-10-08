@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { sendPushNotifications } from '../utils/push.js';
@@ -109,6 +110,36 @@ router.patch('/remove', async (req, res) => {
     res.json({ message: 'Friend removed successfully' });
   } catch {
     res.status(500).json({ error: 'Error removing friend' });
+  }
+});
+
+// Friendship between the authenticated user and :userid. 'outgoing' means we
+// sent them a request; 'incoming' means they sent us one. The client can't
+// work out 'outgoing' itself since that request sits in the other user's inbox.
+router.get('/status/:userid', async (req, res) => {
+  try {
+    const { userid } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(userid)) {
+      return res.status(400).json({ error: 'Invalid user id' });
+    }
+    const user = await User.findById(req.userId, 'friends');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if ((user.friends || []).some(f => (f._id || f).toString() === userid)) {
+      return res.json({ status: 'friends' });
+    }
+    const request = await Notification.findOne({
+      type: 'friend-request',
+      $or: [
+        { recipient: userid, object: req.userId },
+        { recipient: req.userId, object: userid },
+      ],
+    }, 'recipient');
+    if (!request) return res.json({ status: 'none' });
+    res.json({ status: request.recipient.toString() === userid ? 'outgoing' : 'incoming' });
+  } catch {
+    res.status(500).json({ error: 'Error getting friend status' });
   }
 });
 

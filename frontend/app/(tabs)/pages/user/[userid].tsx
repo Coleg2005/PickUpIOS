@@ -10,7 +10,7 @@ import { useThemeColor } from '@/hooks/useThemeColor';
 import { Radius, Spacing, FontSize } from '@/constants/Theme';
 
 import { useLocalSearchParams } from 'expo-router';
-import { getUser, requestFriend, removeFriend, getPfp, getNotifications, blockUser, unblockUser } from '@/utils/api';
+import { getUser, requestFriend, acceptFriend, removeFriend, getPfp, getFriendStatus, blockUser, unblockUser, type FriendStatus } from '@/utils/api';
 import { useFocusEffect } from "expo-router/react-navigation";
 import { jwtDecode } from 'jwt-decode';
 import * as SecureStore from 'expo-secure-store';
@@ -19,8 +19,7 @@ export default function UserProfile() {
   const { userid } = useLocalSearchParams();
   const [visitedUser, setVisitedUser] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
-  const [isFriend, setIsFriend] = useState(false);
-  const [isPending, setIsPending] = useState(false);
+  const [friendStatus, setFriendStatus] = useState<FriendStatus>('none');
   const [isBlocked, setIsBlocked] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -53,8 +52,10 @@ export default function UserProfile() {
       const load = async () => {
         setLoading(true);
         try {
-          const res = await getUser(Array.isArray(userid) ? userid[0] : userid);
+          const id = Array.isArray(userid) ? userid[0] : userid;
+          const [res, friendship] = await Promise.all([getUser(id), getFriendStatus(id)]);
           setVisitedUser(res.user);
+          setFriendStatus(friendship?.status ?? 'none');
         } catch {}
         finally { setLoading(false); }
       };
@@ -64,25 +65,23 @@ export default function UserProfile() {
 
   useEffect(() => {
     if (!user || !visitedUser) return;
-    const friendIds = user.friends?.map((f: any) => f._id || f) || [];
-    setIsFriend(friendIds.includes(visitedUser._id));
     const blockedIds = user.blockedUsers?.map((b: any) => b._id || b) || [];
     setIsBlocked(blockedIds.includes(visitedUser._id));
-    const checkPending = async () => {
-      const notifs = await getNotifications(user._id);
-      setIsPending(notifs.some((n: any) => n.type === 'friend-request' && n.object?._id === visitedUser._id));
-    };
-    checkPending();
   }, [user, visitedUser]);
 
   const handleRequest = async () => {
-    await requestFriend(Array.isArray(userid) ? userid[0] : userid);
-    setIsPending(true);
+    const res = await requestFriend(Array.isArray(userid) ? userid[0] : userid);
+    if (res) setFriendStatus('outgoing');
+  };
+
+  const handleAccept = async () => {
+    const res = await acceptFriend(Array.isArray(userid) ? userid[0] : userid);
+    if (res) setFriendStatus('friends');
   };
 
   const handleRemove = async () => {
-    await removeFriend(Array.isArray(userid) ? userid[0] : userid);
-    setIsFriend(false);
+    const res = await removeFriend(Array.isArray(userid) ? userid[0] : userid);
+    if (res) setFriendStatus('none');
   };
 
   const handleBlock = () => {
@@ -98,8 +97,7 @@ export default function UserProfile() {
             const res = await blockUser(Array.isArray(userid) ? userid[0] : (userid as string));
             if (res) {
               setIsBlocked(true);
-              setIsFriend(false);
-              setIsPending(false);
+              setFriendStatus('none');
             }
           },
         },
@@ -136,10 +134,12 @@ export default function UserProfile() {
         {/* Friend button (hidden while blocked) */}
         {isBlocked ? (
           <AppButton title="Unblock" onPress={handleUnblock} variant="secondary" />
-        ) : isFriend ? (
+        ) : friendStatus === 'friends' ? (
           <AppButton title="Remove Friend" onPress={handleRemove} variant="secondary" />
-        ) : isPending ? (
+        ) : friendStatus === 'outgoing' ? (
           <AppButton title="Request Sent" onPress={() => {}} variant="secondary" disabled />
+        ) : friendStatus === 'incoming' ? (
+          <AppButton title="Accept Request" onPress={handleAccept} />
         ) : (
           <AppButton title="Add Friend" onPress={handleRequest} />
         )}
