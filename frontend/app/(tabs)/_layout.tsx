@@ -7,6 +7,7 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import Settings from '@/components/Settings';
+import { NavHistoryProvider } from '@/context/NavHistoryContext';
 
 // Create a context for settings visibility
 const SettingsContext = createContext<{
@@ -45,6 +46,7 @@ export default function TabLayout() {
 
   return (
     <SettingsContext.Provider value={settingsContextValue}>
+      <NavHistoryProvider>
       <View style={{ flex: 1 }}>
         <Tabs
           screenOptions={{
@@ -119,6 +121,7 @@ export default function TabLayout() {
           onClose={hideSettings} 
         />
       </View>
+      </NavHistoryProvider>
     </SettingsContext.Provider>
   );
 }

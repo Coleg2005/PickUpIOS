@@ -9,6 +9,7 @@ import { jwtDecode } from 'jwt-decode';
 import { Ionicons } from '@expo/vector-icons';
 
 import Header from '@/components/Header';
+import { useNavHistory } from '@/context/NavHistoryContext';
 import Avatar from '@/components/Avatar';
 import AppButton from '@/components/AppButton';
 import GameChat from '@/components/GameChat';
@@ -32,6 +33,7 @@ export default function GameScreen() {
 
 function GameScreenContent() {
   const router = useRouter();
+  const { goBack } = useNavHistory();
 
   const { gameid } = useLocalSearchParams();
 
@@ -122,7 +124,7 @@ function GameScreenContent() {
           style: 'destructive',
           onPress: async () => {
             await deleteGame(gameId);
-            router.back();
+            goBack();
           },
         },
       ]);
